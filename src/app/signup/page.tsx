@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Smile } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [childName, setChildName] = useState("");
@@ -32,7 +34,11 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/dashboard");
+    if (inviteCode) {
+      router.push(`/invite/${inviteCode}`);
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (
@@ -113,5 +119,13 @@ export default function SignupPage() {
         </p>
       </form>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
   );
 }
