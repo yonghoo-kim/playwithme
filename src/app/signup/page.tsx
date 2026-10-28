@@ -14,6 +14,7 @@ function SignupForm() {
   const [childName, setChildName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +22,7 @@ function SignupForm() {
     setLoading(true);
 
     const supabase = createBrowserClient();
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { child_name: childName } },
@@ -34,11 +35,35 @@ function SignupForm() {
       return;
     }
 
+    // When the Supabase project requires email confirmation, signUp()
+    // succeeds but returns no session — redirecting to /dashboard would
+    // just bounce back to /login with no explanation, so show a clear
+    // "check your email" state instead.
+    if (!data.session) {
+      setNeedsEmailConfirmation(true);
+      return;
+    }
+
     if (inviteCode) {
       router.push(`/invite/${inviteCode}`);
     } else {
       router.push("/dashboard");
     }
+  }
+
+  if (needsEmailConfirmation) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
+        <div className="w-full max-w-sm rounded-2xl border-4 border-gray-800 bg-white p-6 text-center shadow-[4px_4px_0px_rgba(31,41,55,1)]">
+          <h1 className="mb-2 text-2xl font-jua text-pink-700">
+            이메일을 확인해주세요 📧
+          </h1>
+          <p className="text-sm text-gray-600">
+            {email}로 보낸 확인 메일의 링크를 눌러야 가입이 완료돼요.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (

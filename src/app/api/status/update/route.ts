@@ -36,44 +36,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const [{ data: userRow }, { data: place }, { data: members }] =
-    await Promise.all([
-      supabase.from("users").select("child_name").eq("id", user.id).single(),
-      supabase.from("places").select("name").eq("id", placeId).single(),
-      supabase
-        .from("group_members")
-        .select("user_id")
-        .eq("group_id", groupId)
-        .neq("user_id", user.id),
-    ]);
+  // The status update itself already succeeded above — a push-sending
+  // problem (bad Firebase credentials, a transient API error, etc.) is a
+  // side effect failure, not a reason to fail this response, so it's
+  // isolated in its own try/catch and only logged.
+  try {
+    const [{ data: userRow }, { data: place }, { data: members }] =
+      await Promise.all([
+        supabase.from("users").select("child_name").eq("id", user.id).single(),
+        supabase.from("places").select("name").eq("id", placeId).single(),
+        supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .neq("user_id", user.id),
+      ]);
 
-  const memberIds = (members ?? []).map((member) => member.user_id);
+    const memberIds = (members ?? []).map((member) => member.user_id);
 
-  if (memberIds.length === 0) {
-    return NextResponse.json({ ok: true });
-  }
+    if (memberIds.length > 0) {
+      const { data: tokenRows } = await supabase
+        .from("fcm_tokens")
+        .select("token")
+        .in("user_id", memberIds);
 
-  const { data: tokenRows } = await supabase
-    .from("fcm_tokens")
-    .select("token")
-    .in("user_id", memberIds);
+      const tokens = (tokenRows ?? []).map((tokenRow) => tokenRow.token);
 
-  const tokens = (tokenRows ?? []).map((tokenRow) => tokenRow.token);
+      if (tokens.length > 0) {
+        const payload = formatPushPayload(
+          userRow?.child_name ?? "",
+          place?.name ?? ""
+        );
 
-  if (tokens.length === 0) {
-    return NextResponse.json({ ok: true });
-  }
+        const { failedTokens } = await sendGroupPush(
+          getAdminMessaging(),
+          tokens,
+          payload
+        );
 
-  const payload = formatPushPayload(userRow?.child_name ?? "", place?.name ?? "");
-
-  const { failedTokens } = await sendGroupPush(
-    getAdminMessaging(),
-    tokens,
-    payload
-  );
-
-  if (failedTokens.length > 0) {
-    await supabase.from("fcm_tokens").delete().in("token", failedTokens);
+        if (failedTokens.length > 0) {
+          await supabase.from("fcm_tokens").delete().in("token", failedTokens);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("push send failed (status update still succeeded):", err);
   }
 
   return NextResponse.json({ ok: true });
