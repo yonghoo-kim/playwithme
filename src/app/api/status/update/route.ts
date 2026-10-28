@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow } from "@/lib/status";
-import { formatPushPayload } from "@/lib/push";
-import { sendGroupPush } from "@/lib/push";
+import { excludeToken, formatPushPayload, sendGroupPush } from "@/lib/push";
 
 export async function POST(request: NextRequest) {
-  const { groupId, placeId } = (await request.json()) as {
-    groupId: string;
+  const { childId, placeId, deviceToken } = (await request.json()) as {
+    childId: string;
     placeId: string | null;
+    deviceToken?: string | null;
   };
 
   const supabaseAuth = createAuthClient();
@@ -22,7 +22,36 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  const row = buildStatusUpsertRow(user.id, groupId, placeId);
+  const { data: guardian } = await supabase
+    .from("child_guardians")
+    .select("user_id")
+    .eq("child_id", childId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!guardian) {
+    return NextResponse.json(
+      { error: "이 아이의 보호자만 상태를 바꿀 수 있어요" },
+      { status: 403 }
+    );
+  }
+
+  const { data: child } = await supabase
+    .from("children")
+    .select("group_id, name")
+    .eq("id", childId)
+    .maybeSingle();
+
+  if (!child) {
+    return NextResponse.json(
+      { error: "아이를 찾을 수 없어요" },
+      { status: 404 }
+    );
+  }
+
+  const groupId = child.group_id;
+
+  const row = buildStatusUpsertRow(childId, groupId, placeId);
   const { error: upsertError } = await supabase
     .from("current_statuses")
     .upsert(row);
@@ -41,16 +70,10 @@ export async function POST(request: NextRequest) {
   // side effect failure, not a reason to fail this response, so it's
   // isolated in its own try/catch and only logged.
   try {
-    const [{ data: userRow }, { data: place }, { data: members }] =
-      await Promise.all([
-        supabase.from("users").select("child_name").eq("id", user.id).single(),
-        supabase.from("places").select("name").eq("id", placeId).single(),
-        supabase
-          .from("group_members")
-          .select("user_id")
-          .eq("group_id", groupId)
-          .neq("user_id", user.id),
-      ]);
+    const [{ data: place }, { data: members }] = await Promise.all([
+      supabase.from("places").select("name").eq("id", placeId).single(),
+      supabase.from("group_members").select("user_id").eq("group_id", groupId),
+    ]);
 
     const memberIds = (members ?? []).map((member) => member.user_id);
 
@@ -60,13 +83,11 @@ export async function POST(request: NextRequest) {
         .select("token")
         .in("user_id", memberIds);
 
-      const tokens = (tokenRows ?? []).map((tokenRow) => tokenRow.token);
+      const allTokens = (tokenRows ?? []).map((tokenRow) => tokenRow.token);
+      const tokens = excludeToken(allTokens, deviceToken ?? null);
 
       if (tokens.length > 0) {
-        const payload = formatPushPayload(
-          userRow?.child_name ?? "",
-          place?.name ?? ""
-        );
+        const payload = formatPushPayload(child.name ?? "", place?.name ?? "");
 
         const { failedTokens } = await sendGroupPush(
           getAdminMessaging(),
