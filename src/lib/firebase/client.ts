@@ -18,6 +18,45 @@ function getFirebaseMessaging(): Messaging {
   return getMessaging(getFirebaseApp());
 }
 
+const FCM_TOKEN_STORAGE_KEY = "playwithme_fcm_token";
+
+/**
+ * Stores this device's FCM token in localStorage so later requests (e.g.
+ * status updates) can identify "this browser/device" and have the server
+ * exclude just its one token from push recipients, instead of excluding a
+ * whole user/account. Degrades silently (no-op) when storage is unavailable
+ * (private browsing, blocked storage, non-browser environment, etc).
+ */
+export function storeFcmToken(token: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
+  } catch {
+    return;
+  }
+}
+
+/**
+ * Reads back this device's previously stored FCM token, if any. Returns
+ * `null` whenever it's unavailable — unsupported/non-browser environment,
+ * blocked storage, or nothing stored yet — so callers can degrade
+ * gracefully instead of crashing.
+ */
+export function getStoredFcmToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(FCM_TOKEN_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Requests notification permission, registers the FCM background service
  * worker at its own scope (kept separate from next-pwa's root-scope sw.js

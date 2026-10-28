@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Bell, X } from "lucide-react";
-import { requestNotificationPermissionAndToken } from "@/lib/firebase/client";
+import {
+  requestNotificationPermissionAndToken,
+  storeFcmToken,
+} from "@/lib/firebase/client";
 
 /**
  * Dismissible banner prompting parents to add the app to their home screen
@@ -37,6 +40,7 @@ export default function NotificationBanner() {
         body: JSON.stringify({ token }),
       });
 
+      storeFcmToken(token);
       setDismissed(true);
     } finally {
       setRequesting(false);
