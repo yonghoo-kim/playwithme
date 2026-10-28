@@ -145,6 +145,8 @@ export default async function DashboardPage() {
     return <NoChildState groupId={groupId} existingChildren={children} />;
   }
 
+  const unclaimedChildren = children.filter((child) => !myChildIds.has(child.id));
+
   const { data: statusRows } =
     childIds.length > 0
       ? await supabase
@@ -218,6 +220,12 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+
+        <NoChildState
+          groupId={groupId}
+          existingChildren={unclaimedChildren}
+          embedded
+        />
       </div>
     </main>
   );
