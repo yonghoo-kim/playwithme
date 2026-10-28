@@ -20,6 +20,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <link rel="manifest" href="/manifest.json" />
+      <meta name="theme-color" content="#FEF3C7" />
       <body className={`${jua.variable} font-jua bg-yellow-50 antialiased`}>
         {children}
       </body>
