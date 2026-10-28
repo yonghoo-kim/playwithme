@@ -39,6 +39,21 @@ $$;
 alter table public.children enable row level security;
 alter table public.child_guardians enable row level security;
 
+-- `current_statuses` was dropped and recreated above — DROP TABLE removes
+-- any RLS policies/flag along with the table, and a freshly CREATEd table
+-- has RLS disabled by default, so this must be re-enabled explicitly
+-- (found in final review: without this, the rebuilt table has no RLS at
+-- all, which — depending on default table grants — can expose every
+-- child's place_id/updated_at to the public anon key).
+alter table public.current_statuses enable row level security;
+
+create policy "current_statuses select for members" on public.current_statuses
+  for select using (
+    exists (select 1 from public.group_members gm
+            where gm.group_id = public.current_statuses.group_id
+              and gm.user_id = auth.uid())
+  );
+
 create policy "children select for group members" on public.children
   for select using (
     exists (select 1 from public.group_members gm
