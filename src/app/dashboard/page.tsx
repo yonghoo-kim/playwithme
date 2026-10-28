@@ -4,6 +4,8 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { createGroupForUser } from "@/lib/groups";
 import NotificationBanner from "@/components/NotificationBanner";
 import StatusCard from "@/components/StatusCard";
+import PlaceSelector from "@/components/PlaceSelector";
+import type { Place } from "@/types/db";
 
 /**
  * Server Action backing the empty-state "그룹 만들기" form — the no-JS
@@ -113,13 +115,21 @@ export default async function DashboardPage() {
 
   const userIds = (memberRows ?? []).map((row) => row.user_id as string);
 
-  const [{ data: userRows }, { data: statusRows }] = await Promise.all([
-    supabase.from("users").select("id, child_name").in("id", userIds),
-    supabase
-      .from("current_statuses")
-      .select("user_id, place_id, updated_at")
-      .in("user_id", userIds),
-  ]);
+  const [{ data: userRows }, { data: statusRows }, { data: groupPlaceRows }] =
+    await Promise.all([
+      supabase.from("users").select("id, child_name").in("id", userIds),
+      supabase
+        .from("current_statuses")
+        .select("user_id, place_id, updated_at")
+        .in("user_id", userIds),
+      supabase
+        .from("places")
+        .select("id, group_id, name, icon_name, created_at")
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  const places: Place[] = (groupPlaceRows ?? []) as Place[];
 
   const placeIds = Array.from(
     new Set(
@@ -177,6 +187,12 @@ export default async function DashboardPage() {
             />
           ))}
         </div>
+
+        <h2 className="text-center text-xl font-jua text-blue-900">
+          어디 갈까요? 🗺️
+        </h2>
+
+        <PlaceSelector groupId={groupId} places={places} />
       </div>
     </main>
   );
