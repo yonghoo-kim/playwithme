@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { PartyPopper } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { createGroupForUser } from "@/lib/groups";
@@ -6,7 +7,15 @@ import NotificationBanner from "@/components/NotificationBanner";
 import StatusCard from "@/components/StatusCard";
 import PlaceSelector from "@/components/PlaceSelector";
 import NoChildState from "@/components/NoChildState";
+import InviteLinkCard from "@/components/InviteLinkCard";
 import type { Child, Place } from "@/types/db";
+
+function buildInviteUrl(inviteCode: string): string {
+  const headerList = headers();
+  const host = headerList.get("host") ?? "localhost:3000";
+  const proto = headerList.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${host}/invite/${inviteCode}`;
+}
 
 /**
  * Server Action backing the empty-state "그룹 만들기" form — the no-JS
@@ -109,6 +118,14 @@ export default async function DashboardPage() {
     return <EmptyGroupState />;
   }
 
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("invite_code")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  const inviteUrl = buildInviteUrl(groupRow?.invite_code ?? "");
+
   const [{ data: childRows }, { data: groupPlaceRows }] = await Promise.all([
     supabase
       .from("children")
@@ -142,7 +159,14 @@ export default async function DashboardPage() {
   );
 
   if (myChildIds.size === 0) {
-    return <NoChildState groupId={groupId} existingChildren={children} />;
+    return (
+      <div className="flex min-h-screen flex-col items-center gap-4 bg-yellow-50 px-4 py-8">
+        <div className="w-full max-w-md">
+          <InviteLinkCard inviteUrl={inviteUrl} />
+        </div>
+        <NoChildState groupId={groupId} existingChildren={children} />
+      </div>
+    );
   }
 
   const unclaimedChildren = children.filter((child) => !myChildIds.has(child.id));
@@ -195,6 +219,7 @@ export default async function DashboardPage() {
     <main className="min-h-screen bg-yellow-50 px-4 py-8">
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
         <NotificationBanner />
+        <InviteLinkCard inviteUrl={inviteUrl} />
 
         <h1 className="text-center text-2xl font-jua text-pink-700">
           우리 그룹 🎈
