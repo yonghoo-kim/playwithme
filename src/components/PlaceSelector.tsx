@@ -4,8 +4,10 @@ import { useState } from "react";
 import type { Place } from "@/types/db";
 import PlaceButton from "@/components/PlaceButton";
 import AddPlaceButton from "@/components/AddPlaceButton";
+import { getStoredFcmToken } from "@/lib/firebase/client";
 
 interface PlaceSelectorProps {
+  childId: string;
   groupId: string;
   places: Place[];
 }
@@ -24,7 +26,11 @@ interface PlaceSelectorProps {
 // is `null` for the home case.
 const HOME_SENTINEL = "__home__";
 
-export default function PlaceSelector({ groupId, places }: PlaceSelectorProps) {
+export default function PlaceSelector({
+  childId,
+  groupId,
+  places,
+}: PlaceSelectorProps) {
   const [selectingPlaceId, setSelectingPlaceId] = useState<string | null>(null);
 
   async function selectPlace(placeId: string | null) {
@@ -33,7 +39,12 @@ export default function PlaceSelector({ groupId, places }: PlaceSelectorProps) {
       await fetch("/api/status/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, placeId }),
+        body: JSON.stringify({
+          childId,
+          groupId,
+          placeId,
+          deviceToken: getStoredFcmToken(),
+        }),
       });
     } finally {
       setSelectingPlaceId(null);

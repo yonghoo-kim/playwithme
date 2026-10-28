@@ -5,7 +5,8 @@ import { createGroupForUser } from "@/lib/groups";
 import NotificationBanner from "@/components/NotificationBanner";
 import StatusCard from "@/components/StatusCard";
 import PlaceSelector from "@/components/PlaceSelector";
-import type { Place } from "@/types/db";
+import NoChildState from "@/components/NoChildState";
+import type { Child, Place } from "@/types/db";
 
 /**
  * Server Action backing the empty-state "그룹 만들기" form — the no-JS
@@ -75,8 +76,8 @@ function EmptyGroupState() {
   );
 }
 
-interface MemberStatus {
-  userId: string;
+interface ChildStatus {
+  childId: string;
   childName: string;
   placeName: string | null;
   iconName: string | null;
@@ -108,28 +109,49 @@ export default async function DashboardPage() {
     return <EmptyGroupState />;
   }
 
-  const { data: memberRows } = await supabase
-    .from("group_members")
-    .select("user_id")
-    .eq("group_id", groupId);
+  const [{ data: childRows }, { data: groupPlaceRows }] = await Promise.all([
+    supabase
+      .from("children")
+      .select("id, group_id, name, created_at")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("places")
+      .select("id, group_id, name, icon_name, created_at")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: true }),
+  ]);
 
-  const userIds = (memberRows ?? []).map((row) => row.user_id as string);
-
-  const [{ data: userRows }, { data: statusRows }, { data: groupPlaceRows }] =
-    await Promise.all([
-      supabase.from("users").select("id, child_name").in("id", userIds),
-      supabase
-        .from("current_statuses")
-        .select("user_id, place_id, updated_at")
-        .in("user_id", userIds),
-      supabase
-        .from("places")
-        .select("id, group_id, name, icon_name, created_at")
-        .eq("group_id", groupId)
-        .order("created_at", { ascending: true }),
-    ]);
-
+  const children: Child[] = (childRows ?? []) as Child[];
   const places: Place[] = (groupPlaceRows ?? []) as Place[];
+
+  const childIds = children.map((child) => child.id);
+
+  const { data: guardianRows } =
+    childIds.length > 0
+      ? await supabase
+          .from("child_guardians")
+          .select("child_id, user_id")
+          .in("child_id", childIds)
+      : { data: [] as { child_id: string; user_id: string }[] };
+
+  const myChildIds = new Set(
+    (guardianRows ?? [])
+      .filter((row) => row.user_id === user.id)
+      .map((row) => row.child_id as string)
+  );
+
+  if (myChildIds.size === 0) {
+    return <NoChildState groupId={groupId} existingChildren={children} />;
+  }
+
+  const { data: statusRows } =
+    childIds.length > 0
+      ? await supabase
+          .from("current_statuses")
+          .select("child_id, place_id, updated_at")
+          .in("child_id", childIds)
+      : { data: [] as { child_id: string; place_id: string | null; updated_at: string }[] };
 
   const placeIds = Array.from(
     new Set(
@@ -150,17 +172,17 @@ export default async function DashboardPage() {
   const placesById = new Map(
     (placeRows ?? []).map((place) => [place.id, place])
   );
-  const statusByUser = new Map(
-    (statusRows ?? []).map((row) => [row.user_id, row])
+  const statusByChild = new Map(
+    (statusRows ?? []).map((row) => [row.child_id, row])
   );
 
-  const members: MemberStatus[] = (userRows ?? []).map((userRow) => {
-    const status = statusByUser.get(userRow.id);
+  const childStatuses: ChildStatus[] = children.map((child) => {
+    const status = statusByChild.get(child.id);
     const place = status?.place_id ? placesById.get(status.place_id) : undefined;
 
     return {
-      userId: userRow.id,
-      childName: userRow.child_name,
+      childId: child.id,
+      childName: child.name,
       placeName: place?.name ?? null,
       iconName: place?.icon_name ?? null,
       updatedAt: status?.updated_at ?? null,
@@ -177,22 +199,25 @@ export default async function DashboardPage() {
         </h1>
 
         <div className="flex flex-col gap-3">
-          {members.map((member) => (
-            <StatusCard
-              key={member.userId}
-              childName={member.childName}
-              placeName={member.placeName}
-              iconName={member.iconName}
-              updatedAt={member.updatedAt}
-            />
+          {childStatuses.map((child) => (
+            <div key={child.childId} className="flex flex-col gap-3">
+              <StatusCard
+                childName={child.childName}
+                placeName={child.placeName}
+                iconName={child.iconName}
+                updatedAt={child.updatedAt}
+              />
+
+              {myChildIds.has(child.childId) && (
+                <PlaceSelector
+                  childId={child.childId}
+                  groupId={groupId}
+                  places={places}
+                />
+              )}
+            </div>
           ))}
         </div>
-
-        <h2 className="text-center text-xl font-jua text-blue-900">
-          어디 갈까요? 🗺️
-        </h2>
-
-        <PlaceSelector groupId={groupId} places={places} />
       </div>
     </main>
   );
