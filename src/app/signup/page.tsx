@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock, Smile } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 function SignupForm() {
@@ -11,7 +11,6 @@ function SignupForm() {
   const inviteCode = searchParams.get("invite");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [childName, setChildName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
@@ -25,7 +24,6 @@ function SignupForm() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { child_name: childName } },
     });
 
     setLoading(false);
@@ -104,20 +102,6 @@ function SignupForm() {
             placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
-        </label>
-
-        <label className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-gray-800 bg-yellow-50 px-3 py-2">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pink-200 shadow-md shadow-pink-200">
-            <Smile size={18} strokeWidth={2.5} className="text-pink-700" />
-          </span>
-          <input
-            type="text"
-            required
-            placeholder="아이 이름"
-            value={childName}
-            onChange={(e) => setChildName(e.target.value)}
             className="w-full bg-transparent outline-none"
           />
         </label>
