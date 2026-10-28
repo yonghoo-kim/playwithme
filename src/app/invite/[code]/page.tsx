@@ -1,35 +1,6 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 import { Frown } from "lucide-react";
-import { createServiceClient } from "@/lib/supabase/server";
-
-// Reads the request's Supabase auth session from cookies (set by the
-// @supabase/ssr browser client) so we know whether a visitor is logged in.
-function createAuthClient() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // Session refresh cookies can't be written from a Server
-            // Component render; safe to ignore here.
-          }
-        },
-      },
-    }
-  );
-}
+import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 
 function InvalidCodeState() {
   return (

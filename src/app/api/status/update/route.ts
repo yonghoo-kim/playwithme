@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow } from "@/lib/status";
 import { formatPushPayload } from "@/lib/push";
@@ -13,24 +11,7 @@ export async function POST(request: NextRequest) {
     placeId: string | null;
   };
 
-  const cookieStore = cookies();
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-
+  const supabaseAuth = createAuthClient();
   const {
     data: { user },
   } = await supabaseAuth.auth.getUser();

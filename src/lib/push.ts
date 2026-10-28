@@ -3,13 +3,23 @@ export interface PushPayload {
   body: string;
 }
 
+// Korean subject-particle rule: a name ending in a closed syllable (받침
+// present) takes an inserted "이" before "가" (e.g. 지훈 -> 지훈이가); a name
+// ending in an open syllable takes bare "가" (e.g. 민호 -> 민호가).
+function withSubjectParticle(name: string): string {
+  const lastCharCode = name.charCodeAt(name.length - 1) - 0xac00;
+  const hasBatchim =
+    lastCharCode >= 0 && lastCharCode <= 11171 && lastCharCode % 28 !== 0;
+  return hasBatchim ? `${name}이가` : `${name}가`;
+}
+
 export function formatPushPayload(
   childName: string,
   placeName: string
 ): PushPayload {
   return {
     title: "나랑 놀자 🎈",
-    body: `${childName}이가 ${placeName}에 나왔어요! 같이 놀아요! 🎈`,
+    body: `${withSubjectParticle(childName)} ${placeName}에 나왔어요! 같이 놀아요! 🎈`,
   };
 }
 

@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { createUniqueInviteCode } from "@/lib/invite";
-
-// Reads the request's Supabase auth session from cookies (set by the
-// @supabase/ssr browser client) so we know which user is calling this route.
-function createAuthClient() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-}
 
 export async function POST(request: NextRequest) {
   let body: { name?: string };
