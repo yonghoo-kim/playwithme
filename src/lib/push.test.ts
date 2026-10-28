@@ -24,7 +24,7 @@ describe('sendGroupPush', () => {
         responses: [{ success: true }, { success: false }],
       }),
     }
-    const result = await sendGroupPush(messaging as any, ['tok-ok', 'tok-dead'], {
+    const result = await sendGroupPush(messaging, ['tok-ok', 'tok-dead'], {
       title: 't', body: 'b',
     })
     expect(result.successTokens).toEqual(['tok-ok'])

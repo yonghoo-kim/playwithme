@@ -37,8 +37,15 @@ export interface SendGroupPushResult {
   failedTokens: string[];
 }
 
+export interface PushMessaging {
+  sendEachForMulticast: (message: {
+    tokens: string[];
+    notification: PushPayload;
+  }) => Promise<{ responses: { success: boolean }[] }>;
+}
+
 export async function sendGroupPush(
-  messaging: { sendEachForMulticast: (message: any) => Promise<any> },
+  messaging: PushMessaging,
   tokens: string[],
   payload: PushPayload
 ): Promise<SendGroupPushResult> {
