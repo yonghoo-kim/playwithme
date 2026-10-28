@@ -1,7 +1,6 @@
 export interface User {
   id: string;
   email: string;
-  child_name: string;
   created_at: string;
 }
 
@@ -34,8 +33,21 @@ export interface FcmToken {
 }
 
 export interface CurrentStatus {
-  user_id: string;
+  child_id: string;
   group_id: string;
   place_id: string | null;
   updated_at: string;
+}
+
+export interface Child {
+  id: string;
+  group_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface ChildGuardian {
+  child_id: string;
+  user_id: string;
+  joined_at: string;
 }

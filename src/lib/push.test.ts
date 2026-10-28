@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { formatPushPayload, sendGroupPush } from './push'
+import { formatPushPayload, sendGroupPush, excludeToken } from './push'
 
 describe('formatPushPayload', () => {
   it('formats the exact spec copy, with a static app-name title', () => {
@@ -29,5 +29,15 @@ describe('sendGroupPush', () => {
     })
     expect(result.successTokens).toEqual(['tok-ok'])
     expect(result.failedTokens).toEqual(['tok-dead'])
+  })
+})
+
+describe('excludeToken', () => {
+  it('removes exactly the given device token', () => {
+    expect(excludeToken(['a', 'b', 'c'], 'b')).toEqual(['a', 'c'])
+  })
+
+  it('returns all tokens unchanged when no device token is given', () => {
+    expect(excludeToken(['a', 'b'], null)).toEqual(['a', 'b'])
   })
 })

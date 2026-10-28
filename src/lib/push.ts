@@ -23,6 +23,15 @@ export function formatPushPayload(
   };
 }
 
+export function excludeToken(
+  tokens: string[],
+  deviceToken: string | null
+): string[] {
+  return deviceToken == null
+    ? tokens
+    : tokens.filter((t) => t !== deviceToken);
+}
+
 export interface SendGroupPushResult {
   successTokens: string[];
   failedTokens: string[];
