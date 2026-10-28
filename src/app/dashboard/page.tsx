@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
 import { PartyPopper } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
-import { createUniqueInviteCode } from "@/lib/invite";
+import { createGroupForUser } from "@/lib/groups";
 import NotificationBanner from "@/components/NotificationBanner";
 import StatusCard from "@/components/StatusCard";
 
 /**
- * Server Action backing the empty-state "그룹 만들기" form. Performs the
- * same two writes as `POST /api/groups/create` (unique invite code, then
- * `groups` + `group_members` inserts via the service client) so the form
- * works with no client-side JS, and redirects back to `/dashboard` so the
- * page re-fetches and renders the new group immediately.
+ * Server Action backing the empty-state "그룹 만들기" form — the no-JS
+ * form path onto the same `createGroupForUser` logic that
+ * `POST /api/groups/create` uses, so group creation has one
+ * implementation. Redirects back to `/dashboard` so the page re-fetches
+ * and renders the new group immediately.
  */
 async function createGroupAction(formData: FormData) {
   "use server";
@@ -29,34 +29,7 @@ async function createGroupAction(formData: FormData) {
     redirect("/login");
   }
 
-  const supabase = createServiceClient();
-
-  const inviteCode = await createUniqueInviteCode(async (code) => {
-    const { data } = await supabase
-      .from("groups")
-      .select("id")
-      .eq("invite_code", code)
-      .maybeSingle();
-    return !!data;
-  });
-
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .insert({ name, invite_code: inviteCode })
-    .select()
-    .single();
-
-  if (groupError || !group) {
-    throw new Error(groupError?.message ?? "그룹 생성에 실패했어요.");
-  }
-
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: user.id });
-
-  if (memberError) {
-    throw new Error(memberError.message);
-  }
+  await createGroupForUser(createServiceClient(), user.id, name);
 
   redirect("/dashboard");
 }

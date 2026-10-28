@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
-import { createUniqueInviteCode } from "@/lib/invite";
+import { createGroupForUser } from "@/lib/groups";
 
 export async function POST(request: NextRequest) {
   let body: { name?: string };
@@ -27,40 +27,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
   }
 
-  const supabase = createServiceClient();
-
-  const inviteCode = await createUniqueInviteCode(async (code) => {
-    const { data } = await supabase
-      .from("groups")
-      .select("id")
-      .eq("invite_code", code)
-      .maybeSingle();
-    return !!data;
-  });
-
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .insert({ name, invite_code: inviteCode })
-    .select()
-    .single();
-
-  if (groupError || !group) {
+  try {
+    const group = await createGroupForUser(createServiceClient(), user.id, name);
+    return NextResponse.json({ group });
+  } catch (err) {
     return NextResponse.json(
-      { error: "그룹 생성에 실패했어요." },
+      { error: err instanceof Error ? err.message : "그룹 생성에 실패했어요." },
       { status: 500 }
     );
   }
-
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: user.id });
-
-  if (memberError) {
-    return NextResponse.json(
-      { error: "그룹 멤버 등록에 실패했어요." },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ group });
 }
