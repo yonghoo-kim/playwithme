@@ -104,12 +104,12 @@ export default function PlaygroundBackground() {
       </div>
 
       <div className="pg-layer pg-day">
-        {/* Sun / moon sit top-left so the settings button never covers them. */}
-        <div className="absolute left-[4%] top-[3%] h-28 w-28">
+        {/* Sun / moon sit top-right, just left of the 설정 button. */}
+        <div className="absolute right-[max(76px,17%)] top-[1%] h-24 w-24">
           <Sun color="#FFD84D" rays />
         </div>
-        <Cloud className="absolute right-[6%] top-[12%] w-32" />
-        <Cloud className="absolute left-[40%] top-[24%] w-20 opacity-80" />
+        <Cloud className="absolute left-[5%] top-[12%] w-28" />
+        <Cloud className="absolute right-[8%] top-[24%] w-20 opacity-80" />
       </div>
 
       <div className="pg-layer pg-evening">
@@ -138,7 +138,7 @@ export default function PlaygroundBackground() {
         </svg>
         <svg
           viewBox="0 0 120 120"
-          className="absolute left-[6%] top-[4%] h-24 w-24"
+          className="absolute right-[max(76px,17%)] top-[1%] h-24 w-24"
         >
           <mask id="pg-moon-cut">
             <rect width="120" height="120" fill="white" />
