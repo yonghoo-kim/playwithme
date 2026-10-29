@@ -41,7 +41,9 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, {
     body: data.body || payload.notification?.body || "",
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    // Android status bar uses only the alpha channel: a white-on-transparent
+    // silhouette, otherwise it renders as a plain white square.
+    badge: "/icons/badge-96.png",
     // Same child -> replace the previous notification instead of stacking.
     tag: data.tag || undefined,
     renotify: !!data.tag,
