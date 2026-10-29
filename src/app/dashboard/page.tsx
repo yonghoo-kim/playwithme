@@ -223,8 +223,7 @@ export default async function DashboardPage({
   const status = statusRow as CurrentStatus | null;
 
   return (
-    <main className="min-h-screen px-4 pb-32 pt-20">
-      <AppHeader />
+    <AppHeader>
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
         <NotificationNudge />
         <FcmTokenSync />
@@ -301,6 +300,6 @@ export default async function DashboardPage({
           />
         </section>
       </div>
-    </main>
+    </AppHeader>
   );
 }

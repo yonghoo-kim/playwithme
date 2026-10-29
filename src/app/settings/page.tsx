@@ -90,8 +90,7 @@ export default async function SettingsPage() {
   );
 
   return (
-    <main className="min-h-screen px-4 pb-32 pt-20">
-      <AppHeader />
+    <AppHeader>
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
         <h1 className="text-2xl font-jua text-pink-700">설정 ⚙️</h1>
 
@@ -147,6 +146,6 @@ export default async function SettingsPage() {
           <NotificationSettingsToggle />
         </section>
       </div>
-    </main>
+    </AppHeader>
   );
 }

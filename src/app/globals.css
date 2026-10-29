@@ -45,6 +45,12 @@ body {
   }
 }
 
+/* Scroll area under the fixed app header (src/components/AppHeader.tsx). */
+.app-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
+}
+
 /* Sunny playground background (src/components/PlaygroundBackground.tsx).
    <html data-phase> picks the sky; layers crossfade when it changes. */
 :root {
