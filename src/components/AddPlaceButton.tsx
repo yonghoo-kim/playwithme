@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import { getPlaceVisual } from "@/lib/icons";
 
 interface AddPlaceButtonProps {
-  groupId: string;
   onSelect: (placeId: string) => void;
 }
 
@@ -26,14 +25,12 @@ const ICON_CHOICES: { name: string }[] = [
 
 /**
  * Bouncy circular "+" button that opens an inline form (name + icon pick)
- * to create a new place. On submit, POSTs to `/api/places/create` and then
- * calls the same `onSelect(placeId)` callback `PlaceButton` uses, so the
- * new place is selected immediately via `/api/status/update`.
+ * to create a new family place (owned by the caller, not tied to a group).
+ * On submit, POSTs to `/api/places/create` and then calls the same
+ * `onSelect(placeId)` callback `PlaceButton` uses, so the new place is
+ * selected immediately via `/api/status/update`.
  */
-export default function AddPlaceButton({
-  groupId,
-  onSelect,
-}: AddPlaceButtonProps) {
+export default function AddPlaceButton({ onSelect }: AddPlaceButtonProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [iconName, setIconName] = useState(ICON_CHOICES[0].name);
@@ -53,19 +50,24 @@ export default function AddPlaceButton({
       const res = await fetch("/api/places/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, name: trimmed, iconName }),
+        body: JSON.stringify({ name: trimmed, iconName }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        place?: { id: string };
+        error?: string;
+      };
 
       if (!res.ok || !data.place) {
         setError(data.error ?? "장소 생성에 실패했어요.");
         return;
       }
 
-      onSelect(data.place.id as string);
+      onSelect(data.place.id);
       setOpen(false);
       setName("");
       setIconName(ICON_CHOICES[0].name);
+    } catch {
+      setError("장소 생성에 실패했어요.");
     } finally {
       setSubmitting(false);
     }

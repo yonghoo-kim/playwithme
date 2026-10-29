@@ -6,6 +6,8 @@ interface StatusCardProps {
   placeName: string | null;
   iconName: string | null;
   updatedAt: string | null;
+  /** One-line variant (a group page's "우리 아이" row). */
+  compact?: boolean;
 }
 
 /**
@@ -27,12 +29,57 @@ function formatRelativeTime(iso: string): string {
   return `${diffDay}일 전`;
 }
 
+function TimeBadge({ updatedAt }: { updatedAt: string }) {
+  return (
+    <span
+      // Relative time is computed from Date.now(), which can differ by a
+      // minute between the server render and client hydration.
+      suppressHydrationWarning
+      className="shrink-0 rounded-full border-2 border-gray-800 bg-yellow-200 px-2 py-1 text-xs font-bold text-yellow-900"
+    >
+      {formatRelativeTime(updatedAt)}
+    </span>
+  );
+}
+
+/** Read-only display of one child's current place (or "집에 있어요"). */
 export default function StatusCard({
   childName,
   placeName,
   iconName,
   updatedAt,
+  compact = false,
 }: StatusCardProps) {
+  if (compact) {
+    const visual = placeName ? getPlaceVisual(iconName ?? "") : null;
+    return (
+      <div className="flex items-center gap-2 rounded-2xl border-2 border-gray-800 bg-white px-3 py-2">
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+            visual ? "bg-green-200" : "bg-gray-100"
+          }`}
+        >
+          {!visual ? (
+            <Home size={16} strokeWidth={2.5} className="text-gray-500" />
+          ) : visual.type === "emoji" ? (
+            <span aria-hidden className="text-[16px] leading-none">
+              {visual.emoji}
+            </span>
+          ) : (
+            <visual.Icon size={16} strokeWidth={3} className="text-green-900" />
+          )}
+        </span>
+        <p className="min-w-0 flex-1 truncate text-sm">
+          <span className="font-jua text-base text-blue-900">{childName}</span>{" "}
+          <span className="font-bold text-pink-700">
+            {placeName ? `· ${placeName}` : "· 집에 있어요 🏠"}
+          </span>
+        </p>
+        {placeName && updatedAt && <TimeBadge updatedAt={updatedAt} />}
+      </div>
+    );
+  }
+
   if (!placeName) {
     return (
       <div className="flex items-center gap-3 rounded-2xl border-2 border-gray-300 bg-white/60 p-4">
@@ -50,7 +97,7 @@ export default function StatusCard({
   const visual = getPlaceVisual(iconName ?? "");
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95">
+    <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
       <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
         {visual.type === "emoji" ? (
           <span aria-hidden className="text-[26px] leading-none">
@@ -68,16 +115,7 @@ export default function StatusCard({
         <p className="text-sm font-bold text-pink-700">{placeName}</p>
       </div>
 
-      {updatedAt && (
-        <span
-          // Relative time is computed from Date.now(), which can differ by a
-          // minute between the server render and client hydration.
-          suppressHydrationWarning
-          className="shrink-0 rounded-full border-2 border-gray-800 bg-yellow-200 px-2 py-1 text-xs font-bold text-yellow-900"
-        >
-          {formatRelativeTime(updatedAt)}
-        </span>
-      )}
+      {updatedAt && <TimeBadge updatedAt={updatedAt} />}
     </div>
   );
 }

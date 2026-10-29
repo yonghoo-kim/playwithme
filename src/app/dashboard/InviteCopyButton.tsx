@@ -9,8 +9,9 @@ interface InviteCopyButtonProps {
 }
 
 /**
- * Small "초대하기" pill next to the active group's name. The invite URL is
- * computed on the server (`buildInviteUrl`); this only copies it.
+ * Small "초대하기" pill next to a group's name (group page header). The
+ * invite URL is computed on the server (`buildInviteUrl`); this only copies
+ * it.
  */
 export default function InviteCopyButton({
   groupName,
@@ -36,8 +37,9 @@ export default function InviteCopyButton({
       }
       timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API unavailable (e.g. insecure context) — the full link
-      // is still available on the Settings page.
+      // Clipboard API unavailable (e.g. insecure context) — show the link
+      // so it can be copied by hand.
+      window.prompt("초대 링크를 복사해주세요", inviteUrl);
     }
   }
 

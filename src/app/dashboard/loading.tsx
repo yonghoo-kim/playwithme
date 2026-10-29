@@ -7,7 +7,7 @@ export default function DashboardLoading() {
           className="h-12 w-12 animate-spin rounded-full border-4 border-pink-200 border-t-pink-500"
         />
         <p className="font-jua text-lg text-pink-700">
-          친구들 소식 불러오는 중… 🛝
+          우리 아이 불러오는 중… 🛝
         </p>
       </div>
     </main>

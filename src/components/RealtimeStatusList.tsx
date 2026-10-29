@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Baby, Eye, Users } from "lucide-react";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { createBrowserClient } from "@/lib/supabase/client";
 import StatusCard from "@/components/StatusCard";
-import PlaceSelector from "@/components/PlaceSelector";
 import type { CurrentStatus, Place } from "@/types/db";
 
 export interface ChildStatusView {
@@ -16,17 +22,6 @@ export interface ChildStatusView {
   updatedAt: string | null;
 }
 
-interface RealtimeStatusListProps {
-  groupId: string;
-  /** Children in this group that the signed-in user guards (with controls). */
-  myChildren: ChildStatusView[];
-  /** Every other child in this group (read-only, never a PlaceSelector). */
-  friends: ChildStatusView[];
-  /** My other children in this group, not shown — ignore their events. */
-  hiddenChildIds: string[];
-  groupPlaces: Place[];
-}
-
 interface LiveStatus {
   placeId: string | null;
   updatedAt: string | null;
@@ -34,15 +29,13 @@ interface LiveStatus {
 
 type StatusMap = Record<string, LiveStatus>;
 
-function toStatusMap(...lists: ChildStatusView[][]): StatusMap {
+function toStatusMap(children: ChildStatusView[]): StatusMap {
   const map: StatusMap = {};
-  for (const list of lists) {
-    for (const child of list) {
-      map[child.childId] = {
-        placeId: child.placeId,
-        updatedAt: child.updatedAt,
-      };
-    }
+  for (const child of children) {
+    map[child.childId] = {
+      placeId: child.placeId,
+      updatedAt: child.updatedAt,
+    };
   }
   return map;
 }
@@ -50,53 +43,49 @@ function toStatusMap(...lists: ChildStatusView[][]): StatusMap {
 const FLASH_MS = 700;
 
 /**
- * Owns the dashboard's "내 아이" / "친구들" sections so status can update
- * live. Initialized from server-fetched props, then subscribed to Supabase
- * Realtime `postgres_changes` on `current_statuses` filtered to THIS group
- * only; the channel is removed whenever `groupId` changes or on unmount, so
- * a previously viewed group can never push into the current view.
+ * Live status for a fixed set of children. Initialized from server-fetched
+ * props, then subscribed to Supabase Realtime `postgres_changes` on
+ * `current_statuses` filtered to exactly these child ids (one status per
+ * child, shared across all of its groups). The channel is removed when the
+ * child set changes or on unmount.
+ *
+ * `children` must be referentially stable between renders (server props or
+ * a `useMemo`) — a fresh array resets local state to it.
+ *
+ * An event pointing at a place not in `places` (a place created after the
+ * page rendered) triggers one `router.refresh()` so the server re-fetches it.
  */
-export default function RealtimeStatusList({
-  groupId,
-  myChildren,
-  friends,
-  hiddenChildIds,
-  groupPlaces,
-}: RealtimeStatusListProps) {
+export function useLiveStatuses(children: ChildStatusView[], places: Place[]) {
   const router = useRouter();
   const [statuses, setStatuses] = useState<StatusMap>(() =>
-    toStatusMap(myChildren, friends)
+    toStatusMap(children)
   );
   const [flashing, setFlashing] = useState<Record<string, boolean>>({});
 
-  // Fresh server data (child/group switch, router.refresh()) replaces local
-  // state wholesale — it is at least as new as anything we merged locally.
+  // Fresh server data (child switch, router.refresh()) replaces local state
+  // wholesale — it is at least as new as anything merged locally.
   useEffect(() => {
-    setStatuses(toStatusMap(myChildren, friends));
-  }, [myChildren, friends]);
+    setStatuses(toStatusMap(children));
+  }, [children]);
 
-  // Latest-value refs so the realtime handler (subscribed once per groupId)
-  // always sees the current places/children without resubscribing.
+  // Latest-value refs so the realtime handler always sees the current
+  // places/children without resubscribing.
   const knownPlaceIdsRef = useRef<Set<string>>(new Set());
   const knownChildIdsRef = useRef<Set<string>>(new Set());
-  const hiddenChildIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    knownPlaceIdsRef.current = new Set(groupPlaces.map((place) => place.id));
-    knownChildIdsRef.current = new Set(
-      [...myChildren, ...friends].map((child) => child.childId)
-    );
-    hiddenChildIdsRef.current = new Set(hiddenChildIds);
-  }, [groupPlaces, myChildren, friends, hiddenChildIds]);
+    knownPlaceIdsRef.current = new Set(places.map((place) => place.id));
+    knownChildIdsRef.current = new Set(children.map((child) => child.childId));
+  }, [places, children]);
 
-  // Refresh at most once per unknown place/child id, so a burst of events
-  // about a just-created place doesn't trigger a burst of refreshes.
+  // Refresh at most once per unknown place id, so a burst of events about a
+  // just-created place doesn't trigger a burst of refreshes.
   const refreshedForRef = useRef<Set<string>>(new Set());
   const refreshOnceFor = useCallback(
-    (key: string) => {
-      if (refreshedForRef.current.has(key)) {
+    (placeId: string) => {
+      if (refreshedForRef.current.has(placeId)) {
         return;
       }
-      refreshedForRef.current.add(key);
+      refreshedForRef.current.add(placeId);
       router.refresh();
     },
     [router]
@@ -126,17 +115,11 @@ export default function RealtimeStatusList({
 
   const applyStatus = useCallback(
     (childId: string, placeId: string | null, updatedAt: string | null) => {
-      if (hiddenChildIdsRef.current.has(childId)) {
-        return;
-      }
       if (!knownChildIdsRef.current.has(childId)) {
-        // A child added to this group after the page rendered.
-        refreshOnceFor(`child:${childId}`);
         return;
       }
       if (placeId && !knownPlaceIdsRef.current.has(placeId)) {
-        // A place created on the fly — fetch it (and the new status) fresh.
-        refreshOnceFor(`place:${placeId}`);
+        refreshOnceFor(placeId);
       }
       setStatuses((current) => ({
         ...current,
@@ -147,24 +130,42 @@ export default function RealtimeStatusList({
     [flash, refreshOnceFor]
   );
 
+  // Stable key for the subscribed child set: resubscribe only when the set
+  // itself changes, not on every server refresh.
+  const idsKey = useMemo(
+    () =>
+      Array.from(new Set(children.map((child) => child.childId)))
+        .sort()
+        .join(","),
+    [children]
+  );
+
   useEffect(() => {
+    if (!idsKey) {
+      return;
+    }
+    const ids = idsKey.split(",");
+    const filter =
+      ids.length === 1
+        ? "child_id=eq." + ids[0]
+        : "child_id=in.(" + ids.join(",") + ")";
+
     const supabase = createBrowserClient();
 
     const handleChange = (
       payload: RealtimePostgresChangesPayload<CurrentStatus>
     ) => {
       if (payload.eventType === "DELETE") {
-        // Realtime can't filter DELETEs by column, so only act on children
-        // already shown here — never refresh for another group's row.
+        // Realtime can't filter DELETEs by column — only act on children
+        // shown here.
         const childId = payload.old.child_id;
-        if (childId && knownChildIdsRef.current.has(childId)) {
+        if (childId) {
           applyStatus(childId, null, null);
         }
         return;
       }
-
       const row = payload.new;
-      if (!row.child_id || row.group_id !== groupId) {
+      if (!row.child_id) {
         return;
       }
       applyStatus(row.child_id, row.place_id ?? null, row.updated_at ?? null);
@@ -186,15 +187,22 @@ export default function RealtimeStatusList({
       if (session) {
         supabase.realtime.setAuth(session.access_token);
       }
+      // Unique topic per mount: the browser client is shared, and two
+      // channels with the same topic would collide.
+      const topic =
+        "statuses-" +
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).slice(2, 8);
       channel = supabase
-        .channel("status-" + groupId)
+        .channel(topic)
         .on<CurrentStatus>(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
             table: "current_statuses",
-            filter: "group_id=eq." + groupId,
+            filter,
           },
           handleChange
         )
@@ -207,39 +215,86 @@ export default function RealtimeStatusList({
         supabase.removeChannel(channel);
       }
     };
-  }, [groupId, applyStatus]);
+  }, [idsKey, applyStatus]);
 
-  const placesById = new Map(groupPlaces.map((place) => [place.id, place]));
+  const placesById = useMemo(
+    () => new Map(places.map((place) => [place.id, place])),
+    [places]
+  );
 
-  function renderCard(child: ChildStatusView) {
-    const status = statuses[child.childId] ?? {
-      placeId: child.placeId,
-      updatedAt: child.updatedAt,
-    };
-    const place = status.placeId ? placesById.get(status.placeId) : undefined;
-    const isFlashing = !!flashing[child.childId];
+  /** Current status of a child, resolved to its place (if known). */
+  const resolve = useCallback(
+    (child: ChildStatusView) => {
+      const status = statuses[child.childId] ?? {
+        placeId: child.placeId,
+        updatedAt: child.updatedAt,
+      };
+      const place = status.placeId ? placesById.get(status.placeId) : undefined;
+      return {
+        placeId: status.placeId,
+        updatedAt: status.updatedAt,
+        // A place we haven't fetched yet (refresh in flight) — show a
+        // placeholder rather than flipping the card to "집에 있어요".
+        placeName: place?.name ?? (status.placeId ? "불러오는 중…" : null),
+        iconName: place?.icon_name ?? null,
+        isFlashing: !!flashing[child.childId],
+      };
+    },
+    [statuses, placesById, flashing]
+  );
 
-    return (
-      <div
-        className={`rounded-2xl transition-all duration-300 ease-out ${
-          isFlashing
-            ? "scale-[1.03] opacity-90 ring-4 ring-pink-300/70"
-            : "scale-100 opacity-100 ring-0"
-        }`}
-      >
-        <StatusCard
-          childName={child.childName}
-          placeName={place?.name ?? null}
-          iconName={place?.icon_name ?? null}
-          updatedAt={status.updatedAt}
-        />
-      </div>
-    );
-  }
+  return { resolve, applyStatus };
+}
+
+/** The pink "just changed" pulse around a status card. */
+export function FlashFrame({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-2xl transition-all duration-300 ease-out ${
+        active
+          ? "scale-[1.03] opacity-90 ring-4 ring-pink-300/70"
+          : "scale-100 opacity-100 ring-0"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface RealtimeStatusListProps {
+  /** My child(ren) in this group — compact, read-only lines. */
+  myChildren: ChildStatusView[];
+  /** Every other child in the group — read-only, never a PlaceSelector. */
+  friends: ChildStatusView[];
+  /** Places referenced by the statuses above (any family's). */
+  places: Place[];
+}
+
+/**
+ * A group page's live roster: "우리 아이" (compact lines) then "친구들".
+ * Everything here is read-only — a child's status is changed only from the
+ * dashboard by its own guardians.
+ */
+export default function RealtimeStatusList({
+  myChildren,
+  friends,
+  places,
+}: RealtimeStatusListProps) {
+  const allChildren = useMemo(
+    () => [...myChildren, ...friends],
+    [myChildren, friends]
+  );
+  const { resolve } = useLiveStatuses(allChildren, places);
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3" aria-labelledby="my-children">
+      <section className="flex flex-col gap-2" aria-labelledby="my-children">
         <h2
           id="my-children"
           className="flex items-center gap-2 font-jua text-xl text-pink-700"
@@ -247,22 +302,26 @@ export default function RealtimeStatusList({
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
             <Baby size={16} strokeWidth={2.5} className="text-blue-800" />
           </span>
-          내 아이
+          우리 아이
         </h2>
 
-        {myChildren.map((child) => (
-          <div key={child.childId} className="flex flex-col gap-3">
-            {renderCard(child)}
-            <PlaceSelector
-              childId={child.childId}
-              groupId={groupId}
-              places={groupPlaces}
-              onSelected={(placeId) =>
-                applyStatus(child.childId, placeId, new Date().toISOString())
-              }
-            />
-          </div>
-        ))}
+        {myChildren.map((child) => {
+          const view = resolve(child);
+          return (
+            <FlashFrame key={child.childId} active={view.isFlashing}>
+              <StatusCard
+                compact
+                childName={child.childName}
+                placeName={view.placeName}
+                iconName={view.iconName}
+                updatedAt={view.updatedAt}
+              />
+            </FlashFrame>
+          );
+        })}
+        <p className="px-1 text-xs font-bold text-gray-500">
+          상태는 첫 화면에서 바꿀 수 있어요
+        </p>
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="friends">
@@ -285,9 +344,19 @@ export default function RealtimeStatusList({
             아직 친구가 없어요 — 초대해보세요 🎈
           </p>
         ) : (
-          friends.map((child) => (
-            <div key={child.childId}>{renderCard(child)}</div>
-          ))
+          friends.map((child) => {
+            const view = resolve(child);
+            return (
+              <FlashFrame key={child.childId} active={view.isFlashing}>
+                <StatusCard
+                  childName={child.childName}
+                  placeName={view.placeName}
+                  iconName={view.iconName}
+                  updatedAt={view.updatedAt}
+                />
+              </FlashFrame>
+            );
+          })
         )}
       </section>
     </div>

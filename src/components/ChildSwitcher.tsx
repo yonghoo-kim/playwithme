@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export interface SwitcherChild {
   id: string;
   name: string;
-  groupId: string;
-  groupName: string;
 }
 
 interface ChildSwitcherProps {
@@ -19,11 +16,10 @@ interface ChildSwitcherProps {
 
 /**
  * Top-of-dashboard row of bouncy pills — one per child the signed-in user
- * guards, across ALL of their groups. Picking a child is what picks the
- * group: tapping a non-active pill POSTs `/api/users/active-child` and then
- * refreshes the Server Component tree (inside a transition, so the pill
- * shows a spinner until the new group's data has arrived). The trailing
- * "+" pill links to Settings to add/join another child.
+ * guards, names only. Tapping a non-active pill POSTs
+ * `/api/users/active-child` and then refreshes the Server Component tree
+ * (inside a transition, so the pill shows a spinner until that child's
+ * status and groups have arrived). Adding children lives in Settings.
  */
 export default function ChildSwitcher({
   myChildren,
@@ -105,7 +101,7 @@ export default function ChildSwitcher({
               aria-busy={pending}
               onClick={() => selectChild(child.id)}
               disabled={busy && !active}
-              className={`flex shrink-0 items-center gap-2 rounded-full border-4 px-4 py-1.5 text-left transition-all duration-200 hover:scale-105 active:scale-95 disabled:cursor-wait ${
+              className={`flex shrink-0 items-center gap-2 rounded-full border-4 px-4 py-1.5 transition-transform hover:scale-105 active:scale-95 disabled:cursor-wait ${
                 active
                   ? "border-gray-800 bg-pink-300 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
                   : "border-gray-300 bg-white"
@@ -119,35 +115,16 @@ export default function ChildSwitcher({
                   aria-hidden
                 />
               )}
-              <span className="flex flex-col leading-tight">
-                <span
-                  className={`font-jua text-base ${
-                    active ? "text-pink-900" : "text-blue-900"
-                  }`}
-                >
-                  {child.name}
-                </span>
-                <span
-                  className={`max-w-[8rem] truncate text-[11px] font-bold ${
-                    active ? "text-pink-800" : "text-gray-500"
-                  }`}
-                >
-                  {child.groupName}
-                </span>
+              <span
+                className={`font-jua text-base ${
+                  active ? "text-pink-900" : "text-blue-900"
+                }`}
+              >
+                {child.name}
               </span>
             </button>
           );
         })}
-
-        <Link
-          href="/settings"
-          aria-label="아이 추가하기"
-          className="flex shrink-0 items-center gap-1 rounded-full border-4 border-dashed border-gray-400 bg-white/60 px-3 py-1.5 transition-transform hover:scale-105 active:scale-95"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-200 shadow-md shadow-purple-200">
-            <Plus size={16} strokeWidth={3} className="text-purple-900" />
-          </span>
-        </Link>
       </div>
 
       {pendingId && (
