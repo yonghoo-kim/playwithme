@@ -10,15 +10,26 @@ import { inviteQuery } from "@/lib/inviteQuery";
 export default function LoginForm({
   inviteCode,
   fromChildId,
+  nextPath,
 }: {
   inviteCode: string | null;
   fromChildId: string | null;
+  /** Already validated server-side as a same-origin relative path. */
+  nextPath: string | null;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Carry the invite and `next` on to signup so neither is lost there.
+  const signupParams = new URLSearchParams(
+    inviteQuery(inviteCode, fromChildId).replace(/^\?/, "")
+  );
+  if (nextPath) signupParams.set("next", nextPath);
+  const signupQueryString = signupParams.toString();
+  const signupQuery = signupQueryString ? `?${signupQueryString}` : "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,8 +49,11 @@ export default function LoginForm({
     }
 
     // Keep the button in its pending state while the next page loads. With
-    // an invite, the invite page asks "참여할까요?" before joining.
-    if (inviteCode) {
+    // an invite, the invite page asks "참여할까요?" before joining. An
+    // explicit `next` (e.g. a guardian invite link) wins over the invite.
+    if (nextPath) {
+      router.push(nextPath);
+    } else if (inviteCode) {
       router.push(`/invite/${encodeURIComponent(inviteCode)}`);
     } else {
       router.push("/dashboard");
@@ -103,7 +117,7 @@ export default function LoginForm({
       <p className="mt-4 text-center text-sm text-gray-600">
         계정이 없나요?{" "}
         <Link
-          href={`/signup${inviteQuery(inviteCode, fromChildId)}`}
+          href={`/signup${signupQuery}`}
           className="font-bold text-blue-900 underline"
         >
           회원가입
