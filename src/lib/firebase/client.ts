@@ -94,8 +94,10 @@ export async function requestNotificationPermissionAndToken(): Promise<
 async function currentDeviceToken(): Promise<string | null> {
   const serviceWorkerRegistration = await navigator.serviceWorker.register(
     "/firebase-messaging-sw.js",
-    { scope: "/firebase-cloud-messaging-push-scope" }
+    { scope: "/firebase-cloud-messaging-push-scope", updateViaCache: "none" }
   );
+  // Explicitly check for a newer worker on every app open.
+  await serviceWorkerRegistration.update().catch(() => undefined);
 
   const token = await getToken(getFirebaseMessaging(), {
     vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,

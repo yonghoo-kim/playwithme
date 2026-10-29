@@ -26,6 +26,11 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Take over immediately when a new version of this worker is fetched, so a
+// phone never keeps showing notifications through an outdated handler.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 // The server sends data-only messages, so this handler is the ONLY place a
 // notification is shown (a `notification` payload would also be auto-shown
 // by the FCM SDK — that was the duplicate "P"-icon notification).
