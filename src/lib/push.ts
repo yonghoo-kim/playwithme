@@ -11,20 +11,22 @@ export function hasBatchim(name: string): boolean {
   return lastCharCode >= 0 && lastCharCode <= 11171 && lastCharCode % 28 !== 0;
 }
 
-// Korean subject-particle rule: a name ending in a closed syllable (받침
-// present) takes an inserted "이" before "가" (e.g. 지훈 -> 지훈이가); a name
-// ending in an open syllable takes bare "가" (e.g. 민호 -> 민호가).
+// Korean subject particle: 이 after a final consonant (고이현 -> 고이현이),
+// 가 after an open syllable (김하나 -> 김하나가).
 function withSubjectParticle(name: string): string {
-  return hasBatchim(name) ? `${name}이가` : `${name}가`;
+  return hasBatchim(name) ? `${name}이` : `${name}가`;
 }
 
+// Title = the group(s) the recipient shares with the child (the phone already
+// shows the app name above it); the app name only when there is none.
 export function formatPushPayload(
   childName: string,
-  placeName: string | null
+  placeName: string | null,
+  groupNames: string[]
 ): PushPayload {
   const subject = withSubjectParticle(childName);
   return {
-    title: "나랑 놀자",
+    title: groupNames.length > 0 ? groupNames.join(" · ") : "나랑 놀자",
     body: placeName
       ? `${subject} ${placeName}에 나왔어요! 같이 놀아요! 🎈`
       : `${subject} 집에 갔어요 🏠`,

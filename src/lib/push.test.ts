@@ -2,25 +2,23 @@ import { describe, it, expect, vi } from 'vitest'
 import { formatPushPayload, sendGroupPush, excludeToken, hasBatchim } from './push'
 
 describe('formatPushPayload', () => {
-  it('formats the exact spec copy, with a static app-name title', () => {
-    expect(formatPushPayload('지훈', '단지 내 놀이터')).toEqual({
-      title: '나랑 놀자',
-      body: '지훈이가 단지 내 놀이터에 나왔어요! 같이 놀아요! 🎈',
+  it('titles the notification with the group name and uses 이 after a final consonant', () => {
+    expect(formatPushPayload('고이현', '단지 내 놀이터', ['가재울어린이집'])).toEqual({
+      title: '가재울어린이집',
+      body: '고이현이 단지 내 놀이터에 나왔어요! 같이 놀아요! 🎈',
     })
   })
 
-  it('announces going home when there is no place', () => {
-    expect(formatPushPayload('지훈', null)).toEqual({
-      title: '나랑 놀자',
-      body: '지훈이가 집에 갔어요 🏠',
+  it('uses 가 after an open syllable and announces going home', () => {
+    expect(formatPushPayload('김하나', null, ['말띠모임'])).toEqual({
+      title: '말띠모임',
+      body: '김하나가 집에 갔어요 🏠',
     })
   })
 
-  it('uses bare 가 (no 이 inserted) for a name with no final consonant', () => {
-    expect(formatPushPayload('민호', '마트')).toEqual({
-      title: '나랑 놀자',
-      body: '민호가 마트에 나왔어요! 같이 놀아요! 🎈',
-    })
+  it('joins several shared groups and falls back to the app name with none', () => {
+    expect(formatPushPayload('지훈', null, ['어린이집', '아파트']).title).toBe('어린이집 · 아파트')
+    expect(formatPushPayload('지훈', null, []).title).toBe('나랑 놀자')
   })
 })
 

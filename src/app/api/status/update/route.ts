@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow } from "@/lib/status";
-import { excludeToken, formatPushPayload, sendGroupPush } from "@/lib/push";
-import { assertGuardian, statusRecipientUserIds } from "@/lib/childAccess";
+import { formatPushPayload, sendGroupPush } from "@/lib/push";
+import { assertGuardian, statusRecipientGroupIds } from "@/lib/childAccess";
 
 /**
  * Sets a child's one status (shared with every group the child is in) and
@@ -101,22 +101,34 @@ export async function POST(request: NextRequest) {
     const { data: ownGroups } = await supabase
       .from("child_groups")
       .select("child_id, group_id")
-      .eq("child_id", childId);
+      .eq("child_id", childId)
+      .order("joined_at", { ascending: true });
 
     const groupIds = (ownGroups ?? []).map((r) => r.group_id as string);
 
-    const { data: groupRows } =
+    const [{ data: groupRows }, { data: groupNameRows }] =
       groupIds.length > 0
-        ? await supabase
-            .from("child_groups")
-            .select("child_id, group_id")
-            .in("group_id", groupIds)
-        : { data: [] as { child_id: string; group_id: string }[] };
+        ? await Promise.all([
+            supabase
+              .from("child_groups")
+              .select("child_id, group_id")
+              .in("group_id", groupIds),
+            supabase.from("groups").select("id, name").in("id", groupIds),
+          ])
+        : [{ data: [] }, { data: [] }];
 
-    const childGroupRows = (groupRows ?? []) as {
-      child_id: string;
-      group_id: string;
-    }[];
+    // The child's own rows first, in join order, so titles list its groups
+    // in that order.
+    const childGroupRows = [
+      ...((ownGroups ?? []) as { child_id: string; group_id: string }[]),
+      ...((groupRows ?? []) as { child_id: string; group_id: string }[]),
+    ];
+    const groupNameById = new Map(
+      ((groupNameRows ?? []) as { id: string; name: string }[]).map((g) => [
+        g.id,
+        g.name,
+      ])
+    );
     const connectedChildIds = Array.from(
       new Set([childId, ...childGroupRows.map((r) => r.child_id)])
     );
@@ -126,36 +138,54 @@ export async function POST(request: NextRequest) {
       .select("child_id, user_id")
       .in("child_id", connectedChildIds);
 
-    const recipientIds = statusRecipientUserIds(
+    const groupsByRecipient = statusRecipientGroupIds(
       childId,
       childGroupRows,
       (guardianRows ?? []) as { child_id: string; user_id: string }[]
     );
 
-    if (recipientIds.length > 0) {
+    if (groupsByRecipient.size > 0) {
       const { data: tokenRows } = await supabase
         .from("fcm_tokens")
-        .select("token")
-        .in("user_id", recipientIds);
+        .select("token, user_id")
+        .in("user_id", Array.from(groupsByRecipient.keys()));
 
-      const allTokens = Array.from(
-        new Set((tokenRows ?? []).map((tokenRow) => tokenRow.token as string))
-      );
-      const tokens = excludeToken(allTokens, deviceToken);
+      // Each recipient's title names the groups they share with the child,
+      // so tokens are batched by title — still one notification per device.
+      const batches = new Map<string, { names: string[]; tokens: string[] }>();
+      const seenTokens = new Set<string>();
+      for (const tokenRow of (tokenRows ?? []) as {
+        token: string;
+        user_id: string;
+      }[]) {
+        // Skip the sender's own device, and a token registered under two
+        // users (send it once).
+        if (tokenRow.token === deviceToken || seenTokens.has(tokenRow.token)) {
+          continue;
+        }
+        seenTokens.add(tokenRow.token);
+        const names = (groupsByRecipient.get(tokenRow.user_id) ?? [])
+          .map((id) => groupNameById.get(id))
+          .filter((name): name is string => !!name);
+        const key = names.join("\n");
+        const batch = batches.get(key) ?? { names, tokens: [] };
+        batch.tokens.push(tokenRow.token);
+        batches.set(key, batch);
+      }
 
-      if (tokens.length > 0) {
-        const payload = formatPushPayload(child.name ?? "", placeName);
-
-        const { failedTokens } = await sendGroupPush(
+      const failedTokens: string[] = [];
+      for (const { names, tokens } of Array.from(batches.values())) {
+        const result = await sendGroupPush(
           getAdminMessaging(),
           tokens,
-          payload,
+          formatPushPayload(child.name ?? "", placeName, names),
           { tag: "child-" + childId }
         );
+        failedTokens.push(...result.failedTokens);
+      }
 
-        if (failedTokens.length > 0) {
-          await supabase.from("fcm_tokens").delete().in("token", failedTokens);
-        }
+      if (failedTokens.length > 0) {
+        await supabase.from("fcm_tokens").delete().in("token", failedTokens);
       }
     }
   } catch (err) {

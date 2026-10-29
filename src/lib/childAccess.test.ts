@@ -1,5 +1,44 @@
 import { describe, it, expect } from 'vitest'
-import { statusRecipientUserIds } from './childAccess'
+import { statusRecipientGroupIds, statusRecipientUserIds } from './childAccess'
+
+describe('statusRecipientGroupIds', () => {
+  const childGroups = [
+    { child_id: 'kid', group_id: 'daycare' },
+    { child_id: 'kid', group_id: 'apt' },
+    { child_id: 'friendA', group_id: 'daycare' },
+    { child_id: 'friendB', group_id: 'apt' },
+    { child_id: 'friendB', group_id: 'daycare' },
+    { child_id: 'stranger', group_id: 'other' },
+  ]
+  const guardians = [
+    { child_id: 'kid', user_id: 'mom' },
+    { child_id: 'friendA', user_id: 'a-parent' },
+    { child_id: 'friendB', user_id: 'b-parent' },
+    { child_id: 'stranger', user_id: 's-parent' },
+  ]
+
+  it("maps each recipient to the child's groups they share, in the child's group order", () => {
+    const result = statusRecipientGroupIds('kid', childGroups, guardians)
+    expect(Object.fromEntries(result)).toEqual({
+      mom: ['daycare', 'apt'],
+      'a-parent': ['daycare'],
+      'b-parent': ['daycare', 'apt'],
+    })
+  })
+
+  it('merges groups across several children of the same parent', () => {
+    const result = statusRecipientGroupIds('kid', childGroups, [
+      { child_id: 'friendA', user_id: 'p' },
+      { child_id: 'friendB', user_id: 'p' },
+    ])
+    expect(result.get('p')).toEqual(['daycare', 'apt'])
+  })
+
+  it("gives the child's own guardians an empty list when it is in no group", () => {
+    const result = statusRecipientGroupIds('kid', [], [{ child_id: 'kid', user_id: 'mom' }])
+    expect(Object.fromEntries(result)).toEqual({ mom: [] })
+  })
+})
 
 describe('statusRecipientUserIds', () => {
   it("includes the child's own guardians even when the child is in no group", () => {

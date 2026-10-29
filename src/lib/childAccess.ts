@@ -81,24 +81,56 @@ export function statusRecipientUserIds(
   childGroupRows: { child_id: string; group_id: string }[],
   guardianRows: { child_id: string; user_id: string }[]
 ): string[] {
-  const groupIds = new Set(
-    childGroupRows
-      .filter((row) => row.child_id === childId)
-      .map((row) => row.group_id)
+  return Array.from(
+    statusRecipientGroupIds(childId, childGroupRows, guardianRows).keys()
   );
+}
 
-  const connectedChildIds = new Set<string>([childId]);
+/**
+ * Same recipients as statusRecipientUserIds, each mapped to the groups of
+ * `childId` they are connected through (in `childGroupRows` order) — used as
+ * the notification title. The child's own guardians get all its groups.
+ */
+export function statusRecipientGroupIds(
+  childId: string,
+  childGroupRows: { child_id: string; group_id: string }[],
+  guardianRows: { child_id: string; user_id: string }[]
+): Map<string, string[]> {
+  const ownGroupIds = Array.from(
+    new Set(
+      childGroupRows
+        .filter((row) => row.child_id === childId)
+        .map((row) => row.group_id)
+    )
+  );
+  const ownGroupSet = new Set(ownGroupIds);
+
+  // Connected child -> which of childId's groups it shares.
+  const sharedByChild = new Map<string, Set<string>>([
+    [childId, ownGroupSet],
+  ]);
   for (const row of childGroupRows) {
-    if (groupIds.has(row.group_id)) {
-      connectedChildIds.add(row.child_id);
-    }
+    if (row.child_id === childId || !ownGroupSet.has(row.group_id)) continue;
+    const shared = sharedByChild.get(row.child_id) ?? new Set<string>();
+    shared.add(row.group_id);
+    sharedByChild.set(row.child_id, shared);
   }
 
-  const userIds = new Set<string>();
+  const groupsByUser = new Map<string, Set<string>>();
   for (const row of guardianRows) {
-    if (connectedChildIds.has(row.child_id)) {
-      userIds.add(row.user_id);
-    }
+    const shared = sharedByChild.get(row.child_id);
+    if (!shared) continue;
+    const groups = groupsByUser.get(row.user_id) ?? new Set<string>();
+    shared.forEach((id) => groups.add(id));
+    groupsByUser.set(row.user_id, groups);
   }
-  return Array.from(userIds);
+
+  const result = new Map<string, string[]>();
+  groupsByUser.forEach((groups, userId) => {
+    result.set(
+      userId,
+      ownGroupIds.filter((id) => groups.has(id))
+    );
+  });
+  return result;
 }
