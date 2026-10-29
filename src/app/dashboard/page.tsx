@@ -292,7 +292,7 @@ export default async function DashboardPage({
             </p>
           ) : (
             <GroupAccordion
-              key={activeChild.id}
+              key={`groups-${activeChild.id}`}
               groups={childGroups}
               friends={friends}
               places={friendPlaces}
@@ -301,8 +301,10 @@ export default async function DashboardPage({
             />
           )}
 
+          {/* Sibling keys must differ: a shared key made React keep the
+              previous child's groups next to the new ones on a switch. */}
           <CreateGroupForm
-            key={activeChild.id}
+            key={`create-group-${activeChild.id}`}
             childId={activeChild.id}
             childName={activeChild.name}
           />
