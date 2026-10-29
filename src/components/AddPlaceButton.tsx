@@ -1,16 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import {
-  Plus,
-  Trees,
-  ShoppingCart,
-  MapPin,
-  Home,
-  Building2,
-  Bike,
-  type LucideIcon,
-} from "lucide-react";
+import { Plus } from "lucide-react";
+import { getPlaceVisual } from "@/lib/icons";
 
 interface AddPlaceButtonProps {
   groupId: string;
@@ -18,15 +10,18 @@ interface AddPlaceButtonProps {
 }
 
 // Fixed set of icon choices offered when creating a place on the fly.
-// Mirrors the known keys in `src/lib/icons.ts`'s PLACE_ICONS map — keep in
-// sync if that map's keys ever change.
-const ICON_CHOICES: { name: string; Icon: LucideIcon }[] = [
-  { name: "Trees", Icon: Trees },
-  { name: "ShoppingCart", Icon: ShoppingCart },
-  { name: "MapPin", Icon: MapPin },
-  { name: "Home", Icon: Home },
-  { name: "Building2", Icon: Building2 },
-  { name: "Bike", Icon: Bike },
+// Mirrors the known keys in `src/lib/icons.ts` (PLACE_EMOJIS + PLACE_ICONS) —
+// keep in sync if those maps' keys ever change. Each choice is rendered via
+// `getPlaceVisual`, so "Playground" shows the 🛝 emoji. Playground is first
+// (and the default) since it's the most common place.
+const ICON_CHOICES: { name: string }[] = [
+  { name: "Playground" },
+  { name: "Trees" },
+  { name: "ShoppingCart" },
+  { name: "MapPin" },
+  { name: "Home" },
+  { name: "Building2" },
+  { name: "Bike" },
 ];
 
 /**
@@ -95,7 +90,7 @@ export default function AddPlaceButton({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2 rounded-2xl border-4 border-gray-800 bg-white p-3 shadow-[4px_4px_0px_rgba(31,41,55,1)]"
+      className="flex w-full flex-col gap-2 rounded-2xl border-4 border-gray-800 bg-white p-3 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
     >
       <input
         type="text"
@@ -108,22 +103,31 @@ export default function AddPlaceButton({
       />
 
       <div className="flex flex-wrap justify-center gap-2">
-        {ICON_CHOICES.map(({ name: choiceName, Icon }) => (
-          <button
-            key={choiceName}
-            type="button"
-            onClick={() => setIconName(choiceName)}
-            aria-label={choiceName}
-            aria-pressed={iconName === choiceName}
-            className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-transform hover:scale-110 active:scale-90 ${
-              iconName === choiceName
-                ? "bg-blue-300 shadow-blue-300"
-                : "bg-gray-100 shadow-gray-200"
-            }`}
-          >
-            <Icon size={18} strokeWidth={3} className="text-blue-900" />
-          </button>
-        ))}
+        {ICON_CHOICES.map(({ name: choiceName }) => {
+          const visual = getPlaceVisual(choiceName);
+          return (
+            <button
+              key={choiceName}
+              type="button"
+              onClick={() => setIconName(choiceName)}
+              aria-label={choiceName}
+              aria-pressed={iconName === choiceName}
+              className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-transform hover:scale-110 active:scale-90 ${
+                iconName === choiceName
+                  ? "bg-blue-300 shadow-blue-300"
+                  : "bg-gray-100 shadow-gray-200"
+              }`}
+            >
+              {visual.type === "emoji" ? (
+                <span aria-hidden className="text-[18px] leading-none">
+                  {visual.emoji}
+                </span>
+              ) : (
+                <visual.Icon size={18} strokeWidth={3} className="text-blue-900" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {error && <p className="text-center text-xs font-bold text-pink-700">{error}</p>}

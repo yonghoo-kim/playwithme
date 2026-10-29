@@ -1,5 +1,5 @@
 import { Home } from "lucide-react";
-import { getPlaceIcon } from "@/lib/icons";
+import { getPlaceVisual } from "@/lib/icons";
 
 interface StatusCardProps {
   childName: string;
@@ -47,12 +47,18 @@ export default function StatusCard({
     );
   }
 
-  const Icon = getPlaceIcon(iconName ?? "");
+  const visual = getPlaceVisual(iconName ?? "");
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,1)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3">
+    <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3">
       <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
-        <Icon size={26} strokeWidth={3} className="text-green-900" />
+        {visual.type === "emoji" ? (
+          <span aria-hidden className="text-[26px] leading-none">
+            {visual.emoji}
+          </span>
+        ) : (
+          <visual.Icon size={26} strokeWidth={3} className="text-green-900" />
+        )}
       </span>
 
       <div className="flex-1">
