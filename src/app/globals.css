@@ -39,8 +39,20 @@ body {
   animation: page-enter 200ms ease-out backwards;
 }
 
+/* Arrow nudging right toward the 설정 button (NotificationNudge). */
+@keyframes nudge-x {
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-nudge-x {
+  animation: nudge-x 0.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-page-enter {
+  .animate-page-enter,
+  .animate-nudge-x {
     animation: none;
   }
 }

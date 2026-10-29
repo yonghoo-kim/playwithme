@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Place } from "@/types/db";
 import PlaceButton from "@/components/PlaceButton";
 import AddPlaceButton from "@/components/AddPlaceButton";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { getStoredFcmToken } from "@/lib/firebase/client";
 import { withDirectionParticle } from "@/lib/korean";
 
@@ -46,14 +47,7 @@ export default function PlaceSelector({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingChoice | null>(null);
 
-  useEffect(() => {
-    if (!pending) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPending(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pending]);
+  const closeDialog = useCallback(() => setPending(null), []);
 
   function askToGo(placeId: string | null, placeName: string) {
     setError(null);
@@ -128,42 +122,12 @@ export default function PlaceSelector({
       )}
 
       {pending && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 px-6"
-          onClick={() => setPending(null)}
-        >
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="place-confirm-title"
-            onClick={(event) => event.stopPropagation()}
-            className="animate-page-enter flex w-full max-w-xs flex-col gap-4 rounded-3xl border-4 border-gray-800 bg-white p-5 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
-          >
-            <p
-              id="place-confirm-title"
-              className="text-center font-jua text-xl text-blue-900"
-            >
-              {withDirectionParticle(pending.placeName)} 가시겠습니까?
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPending(null)}
-                className="flex-1 rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-gray-600 transition-transform hover:scale-105 active:scale-95"
-              >
-                아니요
-              </button>
-              <button
-                type="button"
-                autoFocus
-                onClick={confirm}
-                className="flex-1 rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-pink-900 transition-transform hover:scale-105 active:scale-95"
-              >
-                네, 갈래요!
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          message={`${withDirectionParticle(pending.placeName)} 가시겠습니까?`}
+          confirmLabel="네, 갈래요!"
+          onConfirm={confirm}
+          onCancel={closeDialog}
+        />
       )}
     </div>
   );

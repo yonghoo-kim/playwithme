@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Eye, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Eye, LogOut, Users } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import StatusCard from "@/components/StatusCard";
 import {
   FlashFrame,
@@ -23,6 +25,8 @@ export interface AccordionGroup {
 }
 
 interface GroupAccordionProps {
+  /** The active child — the one "그룹 나가기" takes out of a group. */
+  childId: string;
   /** The active child's groups, in the order the child joined them. */
   groups: AccordionGroup[];
   /** Every friend across those groups, once each (server props — stable). */
@@ -43,6 +47,7 @@ interface GroupAccordionProps {
  * them updates in both.
  */
 export default function GroupAccordion({
+  childId,
   groups,
   friends,
   places,
@@ -80,6 +85,39 @@ export default function GroupAccordion({
       });
   }, [focusGroupId]);
 
+  const router = useRouter();
+  const [leaving, setLeaving] = useState<AccordionGroup | null>(null);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const cancelLeave = useCallback(() => setLeaving(null), []);
+
+  async function leaveGroup() {
+    if (!leaving) return;
+    const groupId = leaving.id;
+    setLeaving(null);
+    setLeaveBusy(true);
+    setLeaveError(null);
+    try {
+      const res = await fetch("/api/groups/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId, childId }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setLeaveError(data.error ?? "그룹에서 나가지 못했어요.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setLeaveError("그룹에서 나가지 못했어요.");
+    } finally {
+      setLeaveBusy(false);
+    }
+  }
+
   function toggle(groupId: string) {
     setOpenIds((current) => {
       const next = new Set(current);
@@ -93,6 +131,7 @@ export default function GroupAccordion({
   }
 
   return (
+    <>
     <ul className="flex flex-col gap-3">
       {groups.map((group) => {
         const open = openIds.has(group.id);
@@ -189,12 +228,38 @@ export default function GroupAccordion({
                       );
                     })
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => setLeaving(group)}
+                    disabled={leaveBusy}
+                    className="flex items-center gap-1 self-end rounded-full border-2 border-gray-300 bg-white/80 px-3 py-1 text-xs font-bold text-gray-500 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
+                  >
+                    <LogOut size={12} strokeWidth={3} aria-hidden />
+                    그룹 나가기
+                  </button>
                 </div>
               </div>
             </div>
           </li>
         );
       })}
+
     </ul>
+
+      {leaveError && (
+        <p role="alert" className="text-xs font-bold text-red-600">
+          {leaveError}
+        </p>
+      )}
+      {leaving && (
+        <ConfirmDialog
+          message={`${leaving.name}에서 나갈까요?`}
+          confirmLabel="나가기"
+          onConfirm={leaveGroup}
+          onCancel={cancelLeave}
+        />
+      )}
+    </>
   );
 }

@@ -223,9 +223,8 @@ export default async function DashboardPage({
   const status = statusRow as CurrentStatus | null;
 
   return (
-    <AppHeader>
+    <AppHeader aside={<NotificationNudge />}>
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
-        <NotificationNudge />
         <FcmTokenSync />
 
         <ChildSwitcher
@@ -283,6 +282,7 @@ export default async function DashboardPage({
           ) : (
             <GroupAccordion
               key={`groups-${activeChild.id}`}
+              childId={activeChild.id}
               groups={childGroups}
               friends={friends}
               places={friendPlaces}
