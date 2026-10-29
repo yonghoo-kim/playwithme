@@ -45,6 +45,57 @@ body {
   }
 }
 
+/* Sliding kid in src/app/PastelLoading.tsx: up the ladder, a pause on top,
+   then down the chute (the curve is sampled at a few points). */
+.pg-slider {
+  transform-box: view-box;
+  transform: translate(86px, 46px);
+  animation: pg-slide 3.2s linear infinite;
+}
+
+@keyframes pg-slide {
+  0% {
+    transform: translate(51px, 152px);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(51px, 46px);
+  }
+  46%,
+  54% {
+    transform: translate(86px, 46px);
+  }
+  61% {
+    transform: translate(111px, 61px);
+  }
+  67% {
+    transform: translate(138px, 95px);
+  }
+  73% {
+    transform: translate(168px, 129px);
+  }
+  79% {
+    transform: translate(205px, 146px);
+  }
+  92% {
+    transform: translate(205px, 146px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(205px, 146px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-slider {
+    animation: none;
+  }
+}
+
 /* Scroll area under the fixed app header (src/components/AppHeader.tsx). */
 .app-scroll {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
