@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Baby, X } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { inviteQuery } from "@/lib/inviteQuery";
 
@@ -21,6 +21,27 @@ export default function SignupForm({
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
+  // Each child-name input keeps a stable id so removing one doesn't shift
+  // the others' focus/state.
+  const [children, setChildren] = useState<{ id: number; name: string }[]>([
+    { id: 0, name: "" },
+  ]);
+  const [nextChildId, setNextChildId] = useState(1);
+  const [childError, setChildError] = useState<string | null>(null);
+
+  function addChild() {
+    setChildren((prev) => [...prev, { id: nextChildId, name: "" }]);
+    setNextChildId((n) => n + 1);
+  }
+
+  function removeChild(id: number) {
+    setChildren((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function updateChild(id: number, name: string) {
+    setChildError(null);
+    setChildren((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
+  }
 
   const query = inviteQuery(inviteCode, fromChildId);
   const loginHref = `/login${query}`;
@@ -29,6 +50,16 @@ export default function SignupForm({
     e.preventDefault();
     setError(null);
     setAlreadyRegistered(false);
+    setChildError(null);
+
+    const childNames = children
+      .map((c) => c.name.trim())
+      .filter((name) => name !== "");
+    if (childNames.length === 0) {
+      setChildError("아이 이름을 한 명 이상 입력해주세요");
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createBrowserClient();
@@ -39,6 +70,9 @@ export default function SignupForm({
         // The confirmation email lands on the login page, with the invite
         // banner when there is one.
         emailRedirectTo: `${window.location.origin}/login${query}`,
+        // The handle_new_user DB trigger creates these children, each
+        // guarded by the new user, and makes the first one active.
+        data: { child_names: childNames },
       },
     });
 
@@ -129,6 +163,54 @@ export default function SignupForm({
           className="w-full bg-transparent outline-none"
         />
       </label>
+
+      <div className="mb-3 rounded-2xl border-2 border-gray-800 bg-pink-50 p-3">
+        <p className="mb-2 text-sm font-bold text-pink-700">아이 이름</p>
+        {children.map((child, index) => (
+          <div key={child.id} className="mb-2 flex items-center gap-2">
+            <label className="flex flex-1 items-center gap-3 rounded-2xl border-2 border-gray-800 bg-white px-3 py-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pink-200 shadow-md shadow-pink-200">
+                <Baby size={18} strokeWidth={2.5} className="text-pink-800" />
+              </span>
+              <input
+                type="text"
+                maxLength={30}
+                placeholder="아이 이름"
+                aria-label={`아이 이름 ${index + 1}`}
+                value={child.name}
+                onChange={(e) => updateChild(child.id, e.target.value)}
+                className="w-full min-w-0 bg-transparent outline-none"
+              />
+            </label>
+            {index > 0 && (
+              <button
+                type="button"
+                onClick={() => removeChild(child.id)}
+                aria-label="이 아이 빼기"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-gray-800 bg-gray-100 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+              >
+                <X size={16} strokeWidth={2.5} className="text-gray-700" />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addChild}
+          className="w-full rounded-2xl border-2 border-gray-800 bg-white py-1.5 font-jua text-pink-700 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+        >
+          + 아이 더 추가
+        </button>
+        <p className="mt-2 text-xs text-gray-600">
+          가입 후 그룹에 초대받거나 그룹을 만들면 아이를 연결할 수 있어요
+        </p>
+      </div>
+
+      {childError && (
+        <p className="mb-3 text-center text-sm font-bold text-red-600">
+          {childError}
+        </p>
+      )}
 
       {error && (
         <p className="mb-3 text-center text-sm font-bold text-red-600">
