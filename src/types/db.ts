@@ -13,12 +13,6 @@ export interface Group {
   created_at: string;
 }
 
-export interface GroupMember {
-  group_id: string;
-  user_id: string;
-  joined_at: string;
-}
-
 /** A family's own place (owned by the guardian who created it, shared with
  * that child's other guardians) — not tied to a group. */
 export interface Place {
