@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Jua } from "next/font/google";
 import "./globals.css";
+import NavigationProgress from "./NavigationProgress";
 
 const jua = Jua({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
       <link rel="manifest" href="/manifest.json" />
       <meta name="theme-color" content="#FEF3C7" />
       <body className={`${jua.variable} font-jua bg-yellow-50 antialiased`}>
+        <NavigationProgress />
         {children}
       </body>
     </html>
