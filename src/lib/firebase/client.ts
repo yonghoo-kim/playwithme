@@ -108,6 +108,28 @@ async function currentDeviceToken(): Promise<string | null> {
 }
 
 /**
+ * Asks for the notification permission (call from a tap — Safari requires a
+ * user gesture), then registers this device's token with the server.
+ * Resolves true when notifications are on.
+ */
+export async function enableNotificationsOnThisDevice(): Promise<boolean> {
+  const token = await requestNotificationPermissionAndToken();
+  if (!token) return false;
+  try {
+    const res = await fetch("/api/fcm/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) return false;
+  } catch {
+    return false;
+  }
+  storeFcmToken(token);
+  return true;
+}
+
+/**
  * Silent refresh for app open: if notifications are already allowed (never
  * prompts), fetch this device's current FCM token and re-register it when it
  * differs from the stored one — browsers rotate tokens, and a stale one

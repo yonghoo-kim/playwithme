@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { dayPhase, PHASE_THEME_COLOR } from "@/lib/dayPhase";
 
 function applyCurrentPhase() {
@@ -17,6 +17,28 @@ function Cloud({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 120 60" className={className}>
       <g fill="white" opacity="0.9">
+        <ellipse cx="40" cy="38" rx="28" ry="18" />
+        <ellipse cx="68" cy="30" rx="26" ry="22" />
+        <ellipse cx="90" cy="40" rx="22" ry="15" />
+        <rect x="20" y="38" width="88" height="17" rx="8.5" />
+      </g>
+    </svg>
+  );
+}
+
+/** Extra cloud for weather layers; fill comes from CSS (pg-wc-*). */
+function WeatherCloud({
+  className,
+  tone,
+  style,
+}: {
+  className: string;
+  tone: "a" | "b" | "partly";
+  style?: CSSProperties;
+}) {
+  return (
+    <svg viewBox="0 0 120 60" className={`pg-drift ${className}`} style={style}>
+      <g className={`pg-wc-${tone}`}>
         <ellipse cx="40" cy="38" rx="28" ry="18" />
         <ellipse cx="68" cy="30" rx="26" ry="22" />
         <ellipse cx="90" cy="40" rx="22" ry="15" />
@@ -79,6 +101,12 @@ const STARS: [number, number, number][] = [
  * the viewer's local time (morning / day / evening / night); the phase is set
  * on <html data-phase> by an inline head script before paint, and re-checked
  * here every minute and whenever the app comes back to the foreground.
+ *
+ * Weather is layered on top purely in CSS from <html data-weather>
+ * (partly | cloudy | rain | snow; absent or "clear" = no change): tint
+ * layers over the sky, extra clouds, rain/snow overlays, a puddle and snow
+ * caps on the hills. Sun/moon wrappers carry .pg-sun so overcast weather can
+ * fade them out.
  */
 export default function PlaygroundBackground() {
   useEffect(() => {
@@ -97,7 +125,7 @@ export default function PlaygroundBackground() {
   return (
     <div aria-hidden className="pg-bg">
       <div className="pg-layer pg-morning">
-        <div className="absolute left-[6%] top-[12%] h-24 w-24">
+        <div className="pg-sun absolute left-[6%] top-[12%] h-24 w-24">
           <Sun color="#FFC56B" rays />
         </div>
         <Cloud className="absolute right-[8%] top-[13%] w-28" />
@@ -105,7 +133,7 @@ export default function PlaygroundBackground() {
 
       <div className="pg-layer pg-day">
         {/* Sun / moon sit top-right, just left of the 설정 button. */}
-        <div className="absolute right-[max(76px,17%)] top-[1%] h-24 w-24">
+        <div className="pg-sun absolute right-[max(76px,17%)] top-[1%] h-24 w-24">
           <Sun color="#FFD84D" rays />
         </div>
         <Cloud className="absolute left-[5%] top-[12%] w-28" />
@@ -113,7 +141,7 @@ export default function PlaygroundBackground() {
       </div>
 
       <div className="pg-layer pg-evening">
-        <div className="pg-low-sun absolute right-[12%] h-28 w-28">
+        <div className="pg-sun pg-low-sun absolute right-[12%] h-28 w-28">
           <Sun color="#FF9F6B" rays={false} />
         </div>
         <Cloud className="absolute left-[8%] top-[10%] w-28 opacity-70" />
@@ -123,7 +151,7 @@ export default function PlaygroundBackground() {
         <svg
           viewBox="0 0 100 50"
           preserveAspectRatio="xMidYMin slice"
-          className="absolute inset-x-0 top-0 h-1/2 w-full"
+          className="pg-stars absolute inset-x-0 top-0 h-1/2 w-full"
         >
           {STARS.map(([x, y, s], i) => (
             <path
@@ -138,7 +166,7 @@ export default function PlaygroundBackground() {
         </svg>
         <svg
           viewBox="0 0 120 120"
-          className="absolute right-[max(76px,17%)] top-[1%] h-24 w-24"
+          className="pg-sun absolute right-[max(76px,17%)] top-[1%] h-24 w-24"
         >
           <mask id="pg-moon-cut">
             <rect width="120" height="120" fill="white" />
@@ -162,6 +190,69 @@ export default function PlaygroundBackground() {
         </svg>
       </div>
 
+      {/* Weather: sky tints (above the skies, below clouds and hills). */}
+      <div className="pg-w pg-fade pg-w-tint-cloudy" />
+      <div className="pg-w pg-fade pg-w-tint-rain" />
+      <div className="pg-w pg-fade pg-w-tint-snow" />
+
+      {/* 구름많음: a few white clouds drifting in front of the sun. */}
+      <div className="pg-w pg-fade pg-w-partly">
+        <WeatherCloud
+          tone="partly"
+          className="absolute right-[max(48px,12%)] top-[7%] w-28"
+        />
+        <WeatherCloud
+          tone="partly"
+          className="absolute right-[max(120px,30%)] top-[2%] w-20 opacity-90"
+          style={{ animationDuration: "30s", animationDelay: "-9s" }}
+        />
+        <WeatherCloud
+          tone="partly"
+          className="absolute left-[1%] top-[17%] w-24"
+          style={{ animationDuration: "26s", animationDelay: "-4s" }}
+        />
+        <WeatherCloud
+          tone="partly"
+          className="absolute left-[34%] top-[11%] w-16 opacity-80"
+          style={{ animationDuration: "34s", animationDelay: "-14s" }}
+        />
+      </div>
+
+      {/* 흐림 / 비 / 눈: more, grayer clouds over the whole top. */}
+      <div className="pg-w pg-fade pg-w-overcast">
+        <WeatherCloud tone="b" className="absolute left-[-6%] top-[3%] w-40" />
+        <WeatherCloud
+          tone="a"
+          className="absolute left-[26%] top-[-1%] w-36"
+          style={{ animationDuration: "28s", animationDelay: "-7s" }}
+        />
+        <WeatherCloud
+          tone="b"
+          className="absolute right-[-4%] top-[2%] w-44"
+          style={{ animationDuration: "32s", animationDelay: "-12s" }}
+        />
+        <WeatherCloud
+          tone="a"
+          className="absolute right-[18%] top-[9%] w-32"
+          style={{ animationDuration: "26s", animationDelay: "-3s" }}
+        />
+        <WeatherCloud
+          tone="a"
+          className="absolute left-[4%] top-[17%] w-28"
+          style={{ animationDuration: "30s", animationDelay: "-18s" }}
+        />
+        <WeatherCloud
+          tone="b"
+          className="absolute left-[42%] top-[15%] w-24 opacity-90"
+          style={{ animationDuration: "36s", animationDelay: "-10s" }}
+        />
+        <WeatherCloud
+          tone="b"
+          className="absolute right-[4%] top-[22%] w-32 opacity-90"
+          style={{ animationDuration: "29s", animationDelay: "-21s" }}
+        />
+      </div>
+
       <svg
         viewBox="0 0 400 120"
         preserveAspectRatio="none"
@@ -170,6 +261,11 @@ export default function PlaygroundBackground() {
         <path
           className="pg-hill-back"
           d="M0 62 C 80 18, 170 26, 240 56 C 300 82, 350 38, 400 42 L400 120 L0 120 Z"
+        />
+        {/* Snow cap: the hill's top curve and the same curve 7 units lower. */}
+        <path
+          className="pg-snowcap pg-fade"
+          d="M0 62 C 80 18, 170 26, 240 56 C 300 82, 350 38, 400 42 L400 49 C 350 45, 300 89, 240 63 C 170 33, 80 25, 0 69 Z"
         />
       </svg>
 
@@ -195,7 +291,31 @@ export default function PlaygroundBackground() {
           className="pg-hill-front"
           d="M0 92 C 90 68, 180 74, 260 94 C 320 108, 370 84, 400 86 L400 120 L0 120 Z"
         />
+        <path
+          className="pg-snowcap pg-fade"
+          d="M0 92 C 90 68, 180 74, 260 94 C 320 108, 370 84, 400 86 L400 92 C 370 90, 320 114, 260 100 C 180 80, 90 74, 0 98 Z"
+        />
       </svg>
+
+      {/* 비: a small puddle on the front hill with a ripple. */}
+      <svg viewBox="0 0 100 24" className="pg-puddle pg-fade absolute w-24">
+        <ellipse className="pg-puddle-water" cx="50" cy="12" rx="48" ry="10" />
+        <ellipse cx="38" cy="9" rx="18" ry="2.6" fill="white" opacity="0.45" />
+        <ellipse
+          className="pg-ripple"
+          cx="62"
+          cy="13"
+          rx="14"
+          ry="4"
+          fill="none"
+          stroke="white"
+          strokeWidth="1.4"
+        />
+      </svg>
+
+      {/* Falling rain / snow over the whole screen. */}
+      <div className="pg-w pg-fade pg-w-rain" />
+      <div className="pg-w pg-fade pg-w-snow" />
     </div>
   );
 }

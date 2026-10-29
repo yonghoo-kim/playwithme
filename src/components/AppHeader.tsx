@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Settings } from "lucide-react";
+import WeatherChip from "@/components/WeatherChip";
 
 /**
- * Signed-in screen frame: one round button top-right that flips between 설정
- * (on home) and 홈 (on settings), then the page content. Scrolls with the
- * page (nothing is pinned).
+ * Signed-in screen frame: the weather chip top-left, one round button
+ * top-right that flips between 설정 (on home) and 홈 (on settings), then the
+ * page content. Scrolls with the page (nothing is pinned).
  */
 export default function AppHeader({
   aside,
@@ -21,7 +22,10 @@ export default function AppHeader({
 
   return (
     <main className="min-h-screen px-4 pb-32 pt-4">
-      <div className="mx-auto mb-2 flex w-full max-w-md items-center justify-end gap-2">
+      <div className="mx-auto mb-2 flex w-full max-w-md flex-wrap items-center justify-end gap-2">
+        <span className="mr-auto">
+          <WeatherChip />
+        </span>
         {aside}
         <Link
           href={onSettings ? "/dashboard" : "/settings"}

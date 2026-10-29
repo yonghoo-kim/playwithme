@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import {
+  enableNotificationsOnThisDevice,
   getStoredFcmToken,
-  requestNotificationPermissionAndToken,
-  storeFcmToken,
 } from "@/lib/firebase/client";
 
 type ToggleState = "checking" | "enabled" | "disabled" | "unsupported";
@@ -32,21 +31,9 @@ export default function NotificationSettingsToggle() {
   async function handleEnableClick() {
     setRequesting(true);
     try {
-      const token = await requestNotificationPermissionAndToken();
-
-      if (!token) {
-        setState("unsupported");
-        return;
-      }
-
-      await fetch("/api/fcm/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-
-      storeFcmToken(token);
-      setState("enabled");
+      setState(
+        (await enableNotificationsOnThisDevice()) ? "enabled" : "unsupported"
+      );
     } finally {
       setRequesting(false);
     }

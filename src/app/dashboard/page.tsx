@@ -11,6 +11,8 @@ import GroupAccordion, { type AccordionGroup } from "./GroupAccordion";
 import NotificationNudge from "./NotificationNudge";
 import FcmTokenSync from "@/components/FcmTokenSync";
 import AppHeader from "@/components/AppHeader";
+import WeatherHint from "@/components/WeatherHint";
+import PermissionGate from "@/components/PermissionGate";
 import type {
   Child,
   ChildGroup,
@@ -233,6 +235,8 @@ export default async function DashboardPage({
           }))}
           activeChildId={activeChild.id}
         />
+        <WeatherHint />
+        <PermissionGate />
 
         <section className="flex flex-col gap-3" aria-labelledby="my-child">
           <h1
