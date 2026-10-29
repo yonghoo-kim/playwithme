@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import SlideLoader from "@/components/SlideLoader";
+import { withDirectionParticle } from "@/lib/korean";
 
 export interface SwitcherChild {
   id: string;
@@ -18,8 +19,9 @@ interface ChildSwitcherProps {
  * Top-of-dashboard row of bouncy pills — one per child the signed-in user
  * guards, names only. Tapping a non-active pill POSTs
  * `/api/users/active-child` and then refreshes the Server Component tree
- * (inside a transition, so the pill shows a spinner until that child's
- * status and groups have arrived). Adding children lives in Settings.
+ * (inside a transition, so a full-screen sliding-kid loader with
+ * "○○로 바꾸는 중이에요…" stays up until that child's status and groups
+ * have arrived). Adding children lives in Settings.
  */
 export default function ChildSwitcher({
   myChildren,
@@ -107,14 +109,6 @@ export default function ChildSwitcher({
                   : "border-gray-300 bg-white"
               } ${busy && !active && !pending ? "opacity-60" : ""}`}
             >
-              {pending && (
-                <Loader2
-                  size={16}
-                  strokeWidth={3}
-                  className="animate-spin text-pink-700"
-                  aria-hidden
-                />
-              )}
               <span
                 className={`font-jua text-base ${
                   active ? "text-pink-900" : "text-blue-900"
@@ -128,9 +122,18 @@ export default function ChildSwitcher({
       </div>
 
       {pendingId && (
-        <p role="status" className="text-xs font-bold text-pink-700">
-          전환하는 중이에요… 🛝
-        </p>
+        <div
+          role="status"
+          className="animate-page-enter fixed inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-sm"
+        >
+          <SlideLoader />
+          <p className="font-jua text-lg text-pink-700">
+            {withDirectionParticle(
+              myChildren.find((child) => child.id === pendingId)?.name ?? ""
+            )}{" "}
+            바꾸는 중이에요…
+          </p>
+        </div>
       )}
       {error && (
         <p role="alert" className="text-xs font-bold text-red-600">
