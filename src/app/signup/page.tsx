@@ -1,5 +1,6 @@
 import { getInviteContext } from "@/lib/inviteContext";
 import { firstParam } from "@/lib/inviteQuery";
+import { safeNextPath } from "@/lib/safeNext";
 import InviteBanner from "../InviteBanner";
 import SignupForm from "./SignupForm";
 
@@ -10,6 +11,7 @@ export default async function SignupPage({
 }) {
   const inviteParam = firstParam(searchParams.invite);
   const fromParam = firstParam(searchParams.from);
+  const nextPath = safeNextPath(firstParam(searchParams.next));
 
   // Only carry an invite through if the code is real.
   const invite = inviteParam
@@ -23,6 +25,7 @@ export default async function SignupPage({
         <SignupForm
           inviteCode={invite?.code ?? null}
           fromChildId={invite ? fromParam : null}
+          nextPath={nextPath}
         />
       </div>
     </main>

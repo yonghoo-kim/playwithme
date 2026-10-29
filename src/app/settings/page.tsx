@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Bell, Baby, PartyPopper, Users } from "lucide-react";
+import { Baby, Bell, UserPlus } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
-import { buildInviteUrl } from "@/lib/inviteUrl";
-import GroupListWithInvites from "@/components/GroupListWithInvites";
+import { getGuardedChildIds } from "@/lib/childAccess";
 import NotificationSettingsToggle from "@/components/NotificationSettingsToggle";
-import CreateGroupForm from "./CreateGroupForm";
-import GroupChildManager from "./GroupChildManager";
-import type { Child, Group } from "@/types/db";
+import MyChildCard from "./MyChildCard";
+import AddChildForm from "./AddChildForm";
 
 function SectionHeading({
   icon,
@@ -24,6 +22,12 @@ function SectionHeading({
   );
 }
 
+/**
+ * Settings: the children I guard (with their groups and a guardian invite
+ * link each), adding a child, and notifications. Only ever shows MY
+ * children — never another family's child, and no group/child "connect"
+ * controls. Having children but no groups is normal here.
+ */
 export default async function SettingsPage() {
   const authClient = createAuthClient();
   const {
@@ -35,135 +39,108 @@ export default async function SettingsPage() {
   }
 
   const supabase = createServiceClient();
+  const childIds = await getGuardedChildIds(supabase, user.id);
 
-  const [{ data: membershipRows }, { data: guardianRows }] = await Promise.all([
-    supabase
-      .from("group_members")
-      .select("group_id, joined_at")
-      .eq("user_id", user.id)
-      .order("joined_at", { ascending: true }),
-    supabase.from("child_guardians").select("child_id").eq("user_id", user.id),
-  ]);
-
-  const groupIds = (membershipRows ?? []).map((row) => row.group_id as string);
-  const myChildIds = new Set(
-    (guardianRows ?? []).map((row) => row.child_id as string)
-  );
-
-  const [{ data: groupRows }, { data: childRows }] =
-    groupIds.length > 0
+  const [{ data: childRows }, { data: childGroupRows }] =
+    childIds.length > 0
       ? await Promise.all([
           supabase
-            .from("groups")
-            .select("id, name, invite_code")
-            .in("id", groupIds),
-          supabase
             .from("children")
-            .select("id, group_id, name, created_at")
-            .in("group_id", groupIds)
+            .select("id, name, created_at")
+            .in("id", childIds)
             .order("created_at", { ascending: true }),
+          supabase
+            .from("child_groups")
+            .select("child_id, group_id, joined_at")
+            .in("child_id", childIds)
+            .order("joined_at", { ascending: true }),
         ])
       : [{ data: [] }, { data: [] }];
 
-  const groupsById = new Map(
-    ((groupRows ?? []) as Pick<Group, "id" | "name" | "invite_code">[]).map(
-      (group) => [group.id, group]
-    )
-  );
-  // Keep membership (joined_at) order.
-  const groups = groupIds
-    .map((id) => groupsById.get(id))
-    .filter((group): group is Pick<Group, "id" | "name" | "invite_code"> =>
-      !!group
-    );
-  const children = (childRows ?? []) as Child[];
+  const links = (childGroupRows ?? []) as {
+    child_id: string;
+    group_id: string;
+  }[];
+  const groupIds = Array.from(new Set(links.map((row) => row.group_id)));
 
-  // Attribute each group's link to the first child I guard there (if any).
-  const groupsWithInvites = groups.map((group) => {
-    const myFirstChild = children.find(
-      (child) => child.group_id === group.id && myChildIds.has(child.id)
-    );
-    return {
-      id: group.id,
-      name: group.name,
-      inviteUrl: buildInviteUrl(group.invite_code, myFirstChild?.id),
-    };
-  });
+  const { data: groupRows } =
+    groupIds.length > 0
+      ? await supabase.from("groups").select("id, name").in("id", groupIds)
+      : { data: [] };
+
+  const groupNameById = new Map(
+    ((groupRows ?? []) as { id: string; name: string }[]).map((group) => [
+      group.id,
+      group.name,
+    ])
+  );
+
+  const myChildren = ((childRows ?? []) as { id: string; name: string }[]).map(
+    (child) => ({
+      id: child.id,
+      name: child.name,
+      groups: links
+        .filter((row) => row.child_id === child.id)
+        .map((row) => ({
+          id: row.group_id,
+          name: groupNameById.get(row.group_id),
+        }))
+        .filter((group): group is { id: string; name: string } => !!group.name),
+    })
+  );
 
   return (
     <main className="min-h-screen bg-yellow-50 px-4 py-8">
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        <div className="flex items-center gap-3">
-          {groups.length > 0 && (
-            <Link
-              href="/dashboard"
-              aria-label="대시보드로 돌아가기"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 border-gray-800 bg-white shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95"
-            >
-              <ArrowLeft size={18} strokeWidth={3} className="text-pink-700" />
-            </Link>
-          )}
+        <div className="flex flex-col gap-3">
+          <Link
+            href="/dashboard"
+            className="self-start rounded-full border-4 border-gray-800 bg-white px-4 py-1.5 font-jua text-pink-700 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+          >
+            ← 홈으로
+          </Link>
           <h1 className="text-2xl font-jua text-pink-700">설정 ⚙️</h1>
         </div>
 
         <section className="flex flex-col gap-3">
           <SectionHeading
             icon={
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-200 shadow-md shadow-yellow-200">
-                <Users size={16} strokeWidth={2.5} className="text-yellow-800" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
+                <Baby size={16} strokeWidth={2.5} className="text-blue-800" />
               </span>
             }
-            title="내 그룹"
+            title="내 아이들"
           />
-          <GroupListWithInvites groups={groupsWithInvites} />
+          {myChildren.length === 0 ? (
+            <p className="rounded-2xl border-4 border-gray-800 bg-white p-4 text-center text-sm font-bold text-blue-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
+              아직 등록된 아이가 없어요. 아래에서 아이를 추가해주세요 👶
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {myChildren.map((child) => (
+                <li key={child.id}>
+                  <MyChildCard
+                    childId={child.id}
+                    name={child.name}
+                    groups={child.groups}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="flex flex-col gap-3">
           <SectionHeading
             icon={
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-200 shadow-md shadow-pink-200">
-                <PartyPopper
-                  size={16}
-                  strokeWidth={2.5}
-                  className="text-pink-800"
-                />
+                <UserPlus size={16} strokeWidth={2.5} className="text-pink-800" />
               </span>
             }
-            title="새 그룹 만들기"
+            title="아이 추가"
           />
-          <CreateGroupForm />
+          <AddChildForm />
         </section>
-
-        {groups.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <SectionHeading
-              icon={
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
-                  <Baby size={16} strokeWidth={2.5} className="text-blue-800" />
-                </span>
-              }
-              title="내 아이들 · 아이 추가/연결"
-            />
-            {groups.map((group) => {
-              const groupChildren = children.filter(
-                (child) => child.group_id === group.id
-              );
-              return (
-                <GroupChildManager
-                  key={group.id}
-                  groupId={group.id}
-                  groupName={group.name}
-                  myChildren={groupChildren
-                    .filter((child) => myChildIds.has(child.id))
-                    .map(({ id, name }) => ({ id, name }))}
-                  joinableChildren={groupChildren
-                    .filter((child) => !myChildIds.has(child.id))
-                    .map(({ id, name }) => ({ id, name }))}
-                />
-              );
-            })}
-          </section>
-        )}
 
         <section className="flex flex-col gap-3">
           <SectionHeading

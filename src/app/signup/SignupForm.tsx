@@ -6,13 +6,17 @@ import Link from "next/link";
 import { Mail, Lock, Baby, X } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { inviteQuery } from "@/lib/inviteQuery";
+import { safeNextPath } from "@/lib/safeNext";
 
 export default function SignupForm({
   inviteCode,
   fromChildId,
+  nextPath,
 }: {
   inviteCode: string | null;
   fromChildId: string | null;
+  /** Validated server-side; re-checked here before use. */
+  nextPath: string | null;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -43,7 +47,15 @@ export default function SignupForm({
     setChildren((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
   }
 
-  const query = inviteQuery(inviteCode, fromChildId);
+  // Carry the invite and `next` (same-origin relative only) back to login,
+  // so a guardian invite link isn't lost on the way.
+  const next = safeNextPath(nextPath);
+  const loginParams = new URLSearchParams(
+    inviteQuery(inviteCode, fromChildId).replace(/^\?/, "")
+  );
+  if (next) loginParams.set("next", next);
+  const loginQueryString = loginParams.toString();
+  const query = loginQueryString ? `?${loginQueryString}` : "";
   const loginHref = `/login${query}`;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,7 +80,7 @@ export default function SignupForm({
       password,
       options: {
         // The confirmation email lands on the login page, with the invite
-        // banner when there is one.
+        // banner when there is one and `next` to continue to afterwards.
         emailRedirectTo: `${window.location.origin}/login${query}`,
         // The handle_new_user DB trigger creates these children, each
         // guarded by the new user, and makes the first one active.
@@ -102,8 +114,11 @@ export default function SignupForm({
       return;
     }
 
-    // Keep the button in its pending state while the next page loads.
-    if (inviteCode) {
+    // Keep the button in its pending state while the next page loads. An
+    // explicit `next` (e.g. a guardian invite link) wins over the invite.
+    if (next) {
+      router.push(next);
+    } else if (inviteCode) {
       router.push(`/invite/${encodeURIComponent(inviteCode)}`);
     } else {
       router.push("/dashboard");
