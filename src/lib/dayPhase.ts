@@ -18,7 +18,7 @@ export const PHASE_THEME_COLOR: Record<DayPhase, string> = {
   morning: "#FFD9C7",
   day: "#9DDCFF",
   evening: "#FFB59E",
-  night: "#A9A6E8",
+  night: "#4B4E9C",
 };
 
 /**

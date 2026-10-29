@@ -127,8 +127,18 @@ body {
 }
 
 :root[data-phase="night"] {
-  --pg-hill-back: #8bb8a8;
-  --pg-hill-front: #6fa392;
+  --pg-hill-back: #5e8c86;
+  --pg-hill-front: #4a766f;
+}
+
+/* Text sitting straight on the sky (headings, hints) turns white at night,
+   when the sky is too dark for the daytime pink/gray. Cards keep theirs. */
+.on-sky {
+  transition: color 1.5s ease;
+}
+
+:root[data-phase="night"] .on-sky {
+  color: #ffffff;
 }
 
 .pg-bg {
@@ -159,7 +169,7 @@ body {
 }
 
 .pg-night {
-  background: linear-gradient(180deg, #a9a6e8 0%, #cfcbf5 45%, #eeebff 100%);
+  background: linear-gradient(180deg, #4b4e9c 0%, #7a7dc8 50%, #b9b4ea 100%);
 }
 
 :root:not([data-phase]) .pg-day,

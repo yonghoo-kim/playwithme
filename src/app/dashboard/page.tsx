@@ -237,14 +237,14 @@ export default async function DashboardPage({
         <section className="flex flex-col gap-3" aria-labelledby="my-child">
           <h1
             id="my-child"
-            className="flex items-center gap-2 font-jua text-2xl text-pink-700"
+            className="on-sky flex items-center gap-2 font-jua text-2xl text-pink-700"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
               <Baby size={18} strokeWidth={2.5} className="text-blue-800" />
             </span>
             {activeChild.name} 지금 어디예요?
           </h1>
-          <p className="-mt-1 px-1 text-xs font-bold text-gray-500">
+          <p className="on-sky -mt-1 px-1 text-xs font-bold text-gray-500">
             모든 그룹 친구들에게 똑같이 보여요
           </p>
 
@@ -266,7 +266,7 @@ export default async function DashboardPage({
         >
           <h2
             id="child-groups"
-            className="flex items-center gap-2 font-jua text-xl text-pink-700"
+            className="on-sky flex items-center gap-2 font-jua text-xl text-pink-700"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-300 shadow-md shadow-yellow-200">
               <Users size={16} strokeWidth={2.5} className="text-yellow-900" />

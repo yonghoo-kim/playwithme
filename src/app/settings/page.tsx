@@ -16,7 +16,7 @@ function SectionHeading({
   title: string;
 }) {
   return (
-    <h2 className="flex items-center gap-2 font-jua text-xl text-pink-700">
+    <h2 className="on-sky flex items-center gap-2 font-jua text-xl text-pink-700">
       {icon}
       {title}
     </h2>
