@@ -7,6 +7,7 @@ import ChildSwitcher from "@/components/ChildSwitcher";
 import ActiveChildStatus from "./ActiveChildStatus";
 import CreateGroupForm from "./CreateGroupForm";
 import NotificationNudge from "./NotificationNudge";
+import FcmTokenSync from "@/components/FcmTokenSync";
 import type { Child, CurrentStatus, Group } from "@/types/db";
 
 /**
@@ -130,6 +131,7 @@ export default async function DashboardPage() {
         </header>
 
         <NotificationNudge />
+        <FcmTokenSync />
 
         <ChildSwitcher
           myChildren={myChildren.map((child) => ({

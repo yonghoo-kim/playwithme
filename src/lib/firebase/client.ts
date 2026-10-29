@@ -82,19 +82,59 @@ export async function requestNotificationPermissionAndToken(): Promise<
     if (permission !== "granted") {
       return null;
     }
-
-    const serviceWorkerRegistration = await navigator.serviceWorker.register(
-      "/firebase-messaging-sw.js",
-      { scope: "/firebase-cloud-messaging-push-scope" }
-    );
-
-    const token = await getToken(getFirebaseMessaging(), {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-      serviceWorkerRegistration,
-    });
-
-    return token || null;
+    return await currentDeviceToken();
   } catch {
     return null;
+  }
+}
+
+// register() also makes the browser re-check firebase-messaging-sw.js for
+// updates — its scope is never navigated to, so without this an old worker
+// could keep running indefinitely.
+async function currentDeviceToken(): Promise<string | null> {
+  const serviceWorkerRegistration = await navigator.serviceWorker.register(
+    "/firebase-messaging-sw.js",
+    { scope: "/firebase-cloud-messaging-push-scope" }
+  );
+
+  const token = await getToken(getFirebaseMessaging(), {
+    vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+    serviceWorkerRegistration,
+  });
+
+  return token || null;
+}
+
+/**
+ * Silent refresh for app open: if notifications are already allowed (never
+ * prompts), fetch this device's current FCM token and re-register it when it
+ * differs from the stored one — browsers rotate tokens, and a stale one
+ * means notifications quietly stop arriving.
+ */
+export async function syncFcmTokenIfGranted(): Promise<void> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("Notification" in window) ||
+    Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  try {
+    const token = await currentDeviceToken();
+    if (!token || token === getStoredFcmToken()) {
+      return;
+    }
+    const res = await fetch("/api/fcm/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (res.ok) {
+      storeFcmToken(token);
+    }
+  } catch {
+    return;
   }
 }
