@@ -34,11 +34,14 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 // The server sends data-only messages, so this handler is the ONLY place a
 // notification is shown (a `notification` payload would also be auto-shown
 // by the FCM SDK — that was the duplicate "P"-icon notification).
+// Return the showNotification promise: the SDK keeps the push event alive
+// until it settles. Without it Chrome sees a push with no notification and
+// adds its own "이 사이트는 백그라운드에서 업데이트되었습니다".
 messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {};
   const title = data.title || payload.notification?.title || "나랑 놀자";
 
-  self.registration.showNotification(title, {
+  return self.registration.showNotification(title, {
     body: data.body || payload.notification?.body || "",
     icon: "/icons/icon-192.png",
     // Android status bar uses only the alpha channel: a white-on-transparent
