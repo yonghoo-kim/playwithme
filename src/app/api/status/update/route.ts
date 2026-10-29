@@ -60,18 +60,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
-  // "🏠 귀가 (Home)" clears place_id and never triggers a push.
-  if (placeId === null) {
-    return NextResponse.json({ ok: true });
-  }
-
-  // The status update itself already succeeded above — a push-sending
-  // problem (bad Firebase credentials, a transient API error, etc.) is a
-  // side effect failure, not a reason to fail this response, so it's
+  // Every status change notifies the group — arriving somewhere and going
+  // home ("🏠 귀가", placeId null) alike. The status update itself already
+  // succeeded above; a push-sending problem is a side-effect failure, so it's
   // isolated in its own try/catch and only logged.
   try {
     const [{ data: place }, { data: members }] = await Promise.all([
-      supabase.from("places").select("name").eq("id", placeId).single(),
+      placeId
+        ? supabase.from("places").select("name").eq("id", placeId).single()
+        : Promise.resolve({ data: null }),
       supabase.from("group_members").select("user_id").eq("group_id", groupId),
     ]);
 
@@ -87,12 +84,16 @@ export async function POST(request: NextRequest) {
       const tokens = excludeToken(allTokens, deviceToken ?? null);
 
       if (tokens.length > 0) {
-        const payload = formatPushPayload(child.name ?? "", place?.name ?? "");
+        const payload = formatPushPayload(
+          child.name ?? "",
+          placeId ? (place?.name ?? "") : null
+        );
 
         const { failedTokens } = await sendGroupPush(
           getAdminMessaging(),
           tokens,
-          payload
+          payload,
+          { tag: "child-" + childId }
         );
 
         if (failedTokens.length > 0) {

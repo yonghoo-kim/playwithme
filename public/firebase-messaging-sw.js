@@ -26,12 +26,37 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// The server sends data-only messages, so this handler is the ONLY place a
+// notification is shown (a `notification` payload would also be auto-shown
+// by the FCM SDK — that was the duplicate "P"-icon notification).
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification?.title || "나랑 놀자";
-  const notificationOptions = {
-    body: payload.notification?.body || "",
-    icon: "/icons/icon-192.png",
-  };
+  const data = payload.data || {};
+  const title = data.title || payload.notification?.title || "나랑 놀자";
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, {
+    body: data.body || payload.notification?.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    // Same child -> replace the previous notification instead of stacking.
+    tag: data.tag || undefined,
+    renotify: !!data.tag,
+    data: { url: data.url || "/dashboard" },
+  });
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/dashboard";
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => {
+        const existing = windows.find((w) => "focus" in w);
+        if (existing) {
+          existing.navigate(url);
+          return existing.focus();
+        }
+        return clients.openWindow(url);
+      })
+  );
 });

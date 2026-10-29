@@ -20,11 +20,14 @@ function withSubjectParticle(name: string): string {
 
 export function formatPushPayload(
   childName: string,
-  placeName: string
+  placeName: string | null
 ): PushPayload {
+  const subject = withSubjectParticle(childName);
   return {
-    title: "나랑 놀자 🎈",
-    body: `${withSubjectParticle(childName)} ${placeName}에 나왔어요! 같이 놀아요! 🎈`,
+    title: "나랑 놀자",
+    body: placeName
+      ? `${subject} ${placeName}에 나왔어요! 같이 놀아요! 🎈`
+      : `${subject} 집에 갔어요 🏠`,
   };
 }
 
@@ -45,19 +48,28 @@ export interface SendGroupPushResult {
 export interface PushMessaging {
   sendEachForMulticast: (message: {
     tokens: string[];
-    notification: PushPayload;
+    data: Record<string, string>;
   }) => Promise<{ responses: { success: boolean }[] }>;
 }
 
+// Data-only on purpose: a `notification` payload is auto-displayed by the
+// FCM web SDK *in addition to* the service worker's own showNotification,
+// which produced duplicate notifications. The SW renders `data` itself.
 export async function sendGroupPush(
   messaging: PushMessaging,
   tokens: string[],
-  payload: PushPayload
+  payload: PushPayload,
+  options: { tag?: string; url?: string } = {}
 ): Promise<SendGroupPushResult> {
-  const response = await messaging.sendEachForMulticast({
-    tokens,
-    notification: payload,
-  });
+  const data: Record<string, string> = {
+    title: payload.title,
+    body: payload.body,
+    url: options.url ?? "/dashboard",
+  };
+  if (options.tag) {
+    data.tag = options.tag;
+  }
+  const response = await messaging.sendEachForMulticast({ tokens, data });
 
   const successTokens: string[] = [];
   const failedTokens: string[] = [];

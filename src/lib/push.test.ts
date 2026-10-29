@@ -4,14 +4,21 @@ import { formatPushPayload, sendGroupPush, excludeToken, hasBatchim } from './pu
 describe('formatPushPayload', () => {
   it('formats the exact spec copy, with a static app-name title', () => {
     expect(formatPushPayload('지훈', '단지 내 놀이터')).toEqual({
-      title: '나랑 놀자 🎈',
+      title: '나랑 놀자',
       body: '지훈이가 단지 내 놀이터에 나왔어요! 같이 놀아요! 🎈',
+    })
+  })
+
+  it('announces going home when there is no place', () => {
+    expect(formatPushPayload('지훈', null)).toEqual({
+      title: '나랑 놀자',
+      body: '지훈이가 집에 갔어요 🏠',
     })
   })
 
   it('uses bare 가 (no 이 inserted) for a name with no final consonant', () => {
     expect(formatPushPayload('민호', '마트')).toEqual({
-      title: '나랑 놀자 🎈',
+      title: '나랑 놀자',
       body: '민호가 마트에 나왔어요! 같이 놀아요! 🎈',
     })
   })
@@ -46,6 +53,19 @@ describe('sendGroupPush', () => {
     })
     expect(result.successTokens).toEqual(['tok-ok'])
     expect(result.failedTokens).toEqual(['tok-dead'])
+  })
+
+  it('sends a data-only message so the service worker shows exactly one notification', async () => {
+    const messaging = {
+      sendEachForMulticast: vi.fn().mockResolvedValue({ responses: [{ success: true }] }),
+    }
+    await sendGroupPush(messaging, ['tok'], { title: 't', body: 'b' }, { tag: 'child-1' })
+    const message = messaging.sendEachForMulticast.mock.calls[0][0]
+    expect(message).not.toHaveProperty('notification')
+    expect(message).toEqual({
+      tokens: ['tok'],
+      data: { title: 't', body: 'b', tag: 'child-1', url: '/dashboard' },
+    })
   })
 })
 
