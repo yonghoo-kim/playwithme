@@ -41,8 +41,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (childError || !child) {
+    console.error("Failed to create child:", childError?.message);
     return NextResponse.json(
-      { error: childError?.message ?? "아이 추가에 실패했어요." },
+      { error: "아이 추가에 실패했어요." },
       { status: 500 }
     );
   }
@@ -54,8 +55,9 @@ export async function POST(request: NextRequest) {
   if (guardianError) {
     // Don't leave an orphan child nobody guards.
     await supabase.from("children").delete().eq("id", child.id);
+    console.error("Failed to add child guardian:", guardianError.message);
     return NextResponse.json(
-      { error: guardianError.message },
+      { error: "아이 추가에 실패했어요." },
       { status: 500 }
     );
   }

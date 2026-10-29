@@ -44,7 +44,11 @@ export async function POST(request: NextRequest) {
     .eq("id", user.id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    console.error("Failed to set active_child_id:", updateError.message);
+    return NextResponse.json(
+      { error: "전환에 실패했어요. 다시 시도해주세요" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true });

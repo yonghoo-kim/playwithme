@@ -23,6 +23,7 @@ function InvalidCodeState() {
 const ERROR_COPY: Record<string, string> = {
   pick: "아이를 한 명 이상 골라주세요",
   name: "아이 이름을 입력해주세요",
+  same: "이미 같은 이름의 그룹에 들어가 있어요",
 };
 
 export default async function InvitePage({
@@ -68,7 +69,7 @@ export default async function InvitePage({
     .eq("user_id", user.id);
 
   if (guardianError) {
-    throw new Error(guardianError.message);
+    throw new Error("보호자 정보를 불러오지 못했어요.");
   }
 
   const guardedIds = (guardianRows ?? []).map((row) => row.child_id as string);
@@ -91,10 +92,10 @@ export default async function InvitePage({
     ]);
 
     if (childrenResult.error) {
-      throw new Error(childrenResult.error.message);
+      throw new Error("아이 정보를 불러오지 못했어요.");
     }
     if (joinedResult.error) {
-      throw new Error(joinedResult.error.message);
+      throw new Error("그룹 정보를 불러오지 못했어요.");
     }
 
     children = (childrenResult.data ?? []).map((c) => ({

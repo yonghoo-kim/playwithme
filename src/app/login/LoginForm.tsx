@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { inviteQuery } from "@/lib/inviteQuery";
+import { toKoreanAuthError } from "@/lib/errorMessages";
 
 export default function LoginForm({
   inviteCode,
@@ -44,7 +45,7 @@ export default function LoginForm({
 
     if (signInError) {
       setLoading(false);
-      setError(signInError.message);
+      setError(toKoreanAuthError(signInError.message));
       return;
     }
 

@@ -7,7 +7,6 @@ import { firstParam } from "@/lib/inviteQuery";
 import type { ChildStatusView } from "@/components/RealtimeStatusList";
 import ChildSwitcher from "@/components/ChildSwitcher";
 import ActiveChildStatus from "./ActiveChildStatus";
-import CreateGroupForm from "./CreateGroupForm";
 import GroupAccordion, { type AccordionGroup } from "./GroupAccordion";
 import NotificationNudge from "./NotificationNudge";
 import FcmTokenSync from "@/components/FcmTokenSync";
@@ -277,12 +276,13 @@ export default async function DashboardPage({
 
           {childGroups.length === 0 ? (
             <p className="rounded-2xl border-4 border-dashed border-gray-300 bg-white/60 p-4 text-center text-sm font-bold text-gray-600">
-              아직 그룹이 없어요 — 그룹을 만들거나 초대받아보세요 🎈
+              아직 그룹이 없어요 — 설정에서 그룹을 만들거나 초대받아보세요 🎈
             </p>
           ) : (
+            // Keyed per child so a switch never keeps the previous child's
+            // groups. Groups are view-only here; managing them is in 설정.
             <GroupAccordion
               key={`groups-${activeChild.id}`}
-              childId={activeChild.id}
               groups={childGroups}
               friends={friends}
               places={friendPlaces}
@@ -290,14 +290,6 @@ export default async function DashboardPage({
               focusGroupId={focusGroupId}
             />
           )}
-
-          {/* Sibling keys must differ: a shared key made React keep the
-              previous child's groups next to the new ones on a switch. */}
-          <CreateGroupForm
-            key={`create-group-${activeChild.id}`}
-            childId={activeChild.id}
-            childName={activeChild.name}
-          />
         </section>
       </div>
     </AppHeader>

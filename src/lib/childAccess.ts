@@ -17,7 +17,8 @@ export async function getGuardedChildIds(
     .eq("user_id", userId);
 
   if (error) {
-    throw new Error(error.message);
+    console.error("child_guardians lookup failed:", error.message);
+    throw new Error("아이 정보를 불러오지 못했어요.");
   }
   return (data ?? []).map((row) => row.child_id as string);
 }
@@ -48,7 +49,8 @@ export async function familyPlaces(
     .eq("child_id", childId);
 
   if (guardianError) {
-    throw new Error(guardianError.message);
+    console.error("child_guardians lookup failed:", guardianError.message);
+    throw new Error("아이 정보를 불러오지 못했어요.");
   }
 
   const guardianIds = (guardians ?? []).map((row) => row.user_id as string);
@@ -61,7 +63,8 @@ export async function familyPlaces(
     .order("created_at", { ascending: true });
 
   if (placesError) {
-    throw new Error(placesError.message);
+    console.error("places lookup failed:", placesError.message);
+    throw new Error("장소를 불러오지 못했어요.");
   }
   return (places ?? []) as Place[];
 }

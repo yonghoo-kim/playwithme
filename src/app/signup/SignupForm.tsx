@@ -7,6 +7,7 @@ import { Mail, Lock, Baby, X } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { inviteQuery } from "@/lib/inviteQuery";
 import { safeNextPath } from "@/lib/safeNext";
+import { toKoreanAuthError } from "@/lib/errorMessages";
 
 export default function SignupForm({
   inviteCode,
@@ -90,7 +91,7 @@ export default function SignupForm({
 
     if (signUpError) {
       setLoading(false);
-      setError(signUpError.message);
+      setError(toKoreanAuthError(signUpError.message));
       return;
     }
 

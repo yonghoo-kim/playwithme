@@ -1,11 +1,12 @@
 import AppHeader from "@/components/AppHeader";
 import { redirect } from "next/navigation";
-import { Baby, Bell, UserPlus } from "lucide-react";
+import { Baby, Bell, UserPlus, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getGuardedChildIds } from "@/lib/childAccess";
 import NotificationSettingsToggle from "@/components/NotificationSettingsToggle";
 import MyChildCard from "./MyChildCard";
 import AddChildForm from "./AddChildForm";
+import MyGroups, { type SettingsGroup } from "./MyGroups";
 
 function SectionHeading({
   icon,
@@ -63,10 +64,48 @@ export default async function SettingsPage() {
   }[];
   const groupIds = Array.from(new Set(links.map((row) => row.group_id)));
 
-  const { data: groupRows } =
+  const [{ data: groupRows }, { data: memberRows }] =
     groupIds.length > 0
-      ? await supabase.from("groups").select("id, name").in("id", groupIds)
-      : { data: [] };
+      ? await Promise.all([
+          supabase
+            .from("groups")
+            .select("id, name, created_by")
+            .in("id", groupIds),
+          supabase
+            .from("child_groups")
+            .select("group_id")
+            .in("group_id", groupIds),
+        ])
+      : [{ data: [] }, { data: [] }];
+
+  const childCountByGroup = new Map<string, number>();
+  for (const row of (memberRows ?? []) as { group_id: string }[]) {
+    childCountByGroup.set(
+      row.group_id,
+      (childCountByGroup.get(row.group_id) ?? 0) + 1
+    );
+  }
+  const groupById = new Map(
+    (
+      (groupRows ?? []) as { id: string; name: string; created_by: string }[]
+    ).map((group) => [group.id, group])
+  );
+  // In the order my children joined them.
+  const settingsGroups: SettingsGroup[] = groupIds
+    .map((id) => groupById.get(id))
+    .filter(
+      (group): group is { id: string; name: string; created_by: string } =>
+        !!group
+    )
+    .map((group) => ({
+      id: group.id,
+      name: group.name,
+      childCount: childCountByGroup.get(group.id) ?? 0,
+      isOwner: group.created_by === user.id,
+      myChildIds: links
+        .filter((row) => row.group_id === group.id)
+        .map((row) => row.child_id),
+    }));
 
   const groupNameById = new Map(
     ((groupRows ?? []) as { id: string; name: string }[]).map((group) => [
@@ -120,6 +159,21 @@ export default async function SettingsPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <SectionHeading
+            icon={
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-300 shadow-md shadow-yellow-200">
+                <Users size={16} strokeWidth={2.5} className="text-yellow-900" />
+              </span>
+            }
+            title="그룹"
+          />
+          <MyGroups
+            groups={settingsGroups}
+            myChildren={myChildren.map(({ id, name }) => ({ id, name }))}
+          />
         </section>
 
         <section className="flex flex-col gap-3">

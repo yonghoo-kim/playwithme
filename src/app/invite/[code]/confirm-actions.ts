@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { inviteQuery } from "@/lib/inviteQuery";
+import { assertNoSameNameGroup } from "@/lib/groups";
 
-type JoinError = "pick" | "name";
+type JoinError = "pick" | "name" | "same";
 
 function backToInvite(code: string, from: string | null, error: JoinError): never {
   const params = new URLSearchParams();
@@ -36,7 +37,7 @@ export async function confirmJoin(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("id")
+    .select("id, name")
     .eq("invite_code", code)
     .maybeSingle();
 
@@ -50,7 +51,7 @@ export async function confirmJoin(
     .eq("user_id", user.id);
 
   if (guardianError) {
-    throw new Error(guardianError.message);
+    throw new Error("보호자 정보를 불러오지 못했어요.");
   }
 
   const guardedIds = new Set(
@@ -75,7 +76,7 @@ export async function confirmJoin(
       .single();
 
     if (childError || !child) {
-      throw new Error(childError?.message ?? "아이 추가에 실패했어요.");
+      throw new Error("아이 추가에 실패했어요.");
     }
 
     const { error: linkError } = await supabase
@@ -83,7 +84,7 @@ export async function confirmJoin(
       .insert({ child_id: child.id, user_id: user.id });
 
     if (linkError) {
-      throw new Error(linkError.message);
+      throw new Error("아이 추가에 실패했어요.");
     }
 
     childIds = [child.id as string];
@@ -98,6 +99,18 @@ export async function confirmJoin(
     if (childIds.length === 0) {
       backToInvite(code, from, "pick");
     }
+
+    // A child never ends up in two groups with the same name.
+    try {
+      await assertNoSameNameGroup(
+        supabase,
+        childIds,
+        group.name as string,
+        group.id as string
+      );
+    } catch {
+      backToInvite(code, from, "same");
+    }
   }
 
   const { error: joinError } = await supabase
@@ -108,14 +121,14 @@ export async function confirmJoin(
   // double submit); insert the rest one by one so none are lost.
   if (joinError) {
     if (joinError.code !== "23505") {
-      throw new Error(joinError.message);
+      throw new Error("그룹에 들어가지 못했어요.");
     }
     for (const childId of childIds) {
       const { error } = await supabase
         .from("child_groups")
         .insert({ child_id: childId, group_id: group.id });
       if (error && error.code !== "23505") {
-        throw new Error(error.message);
+        throw new Error("그룹에 들어가지 못했어요.");
       }
     }
   }

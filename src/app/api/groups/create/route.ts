@@ -75,8 +75,9 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    // groups.ts only throws Korean, user-facing messages.
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "그룹 생성에 실패했어요." },
+      { error: err instanceof Error ? err.message : "그룹을 만들지 못했어요." },
       { status: 500 }
     );
   }

@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     .upsert({ token, user_id: user.id }, { onConflict: "token" });
 
   if (error) {
+    console.error("Failed to register FCM token:", error.message);
     return NextResponse.json(
       { error: "토큰 등록에 실패했어요." },
       { status: 500 }

@@ -89,7 +89,11 @@ export async function POST(request: NextRequest) {
     .upsert(row, { onConflict: "child_id" });
 
   if (upsertError) {
-    return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    console.error("Failed to upsert status:", upsertError.message);
+    return NextResponse.json(
+      { error: "상태를 바꾸지 못했어요. 다시 시도해주세요" },
+      { status: 500 }
+    );
   }
 
   // Every status change notifies everyone connected to the child — arriving

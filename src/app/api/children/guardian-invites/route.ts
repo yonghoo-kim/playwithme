@@ -55,7 +55,11 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (guardianError) {
-    return NextResponse.json({ error: guardianError.message }, { status: 500 });
+    console.error("Failed to check guardian:", guardianError.message);
+    return NextResponse.json(
+      { error: "초대 링크를 만들지 못했어요. 다시 시도해주세요." },
+      { status: 500 }
+    );
   }
 
   if (!guardian) {
@@ -76,7 +80,11 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       if (insertError.code === "23505") continue;
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      console.error("Failed to create guardian invite:", insertError.message);
+      return NextResponse.json(
+        { error: "초대 링크를 만들지 못했어요. 다시 시도해주세요." },
+        { status: 500 }
+      );
     }
 
     const url = `${requestOrigin(request)}/guardian-invite/${invite.code}`;

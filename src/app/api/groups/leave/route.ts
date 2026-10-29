@@ -48,7 +48,11 @@ export async function POST(request: NextRequest) {
     .select("child_id");
 
   if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    console.error("group leave failed:", deleteError.message);
+    return NextResponse.json(
+      { error: "그룹에서 나가지 못했어요." },
+      { status: 500 }
+    );
   }
   if (!removed || removed.length === 0) {
     return NextResponse.json(

@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error || !place) {
+    console.error("Failed to create place:", error?.message);
     return NextResponse.json(
-      { error: error?.message ?? "장소 생성에 실패했어요." },
+      { error: "장소 생성에 실패했어요." },
       { status: 500 }
     );
   }
