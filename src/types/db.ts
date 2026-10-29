@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   email: string;
+  active_child_id: string | null;
   created_at: string;
 }
 
@@ -8,6 +9,7 @@ export interface Group {
   id: string;
   name: string;
   invite_code: string;
+  created_by: string;
   created_at: string;
 }
 
