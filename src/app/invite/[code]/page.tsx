@@ -20,6 +20,11 @@ function InvalidCodeState() {
   );
 }
 
+const ERROR_COPY: Record<string, string> = {
+  pick: "아이를 한 명 이상 골라주세요",
+  name: "아이 이름을 입력해주세요",
+};
+
 export default async function InvitePage({
   params,
   searchParams,
@@ -29,6 +34,8 @@ export default async function InvitePage({
 }) {
   const { code } = params;
   const from = firstParam(searchParams.from);
+  const errorKey = firstParam(searchParams.error);
+  const errorMessage = errorKey ? ERROR_COPY[errorKey] ?? null : null;
 
   const authClient = createAuthClient();
   const {
@@ -45,7 +52,7 @@ export default async function InvitePage({
 
   const { data: group } = await supabase
     .from("groups")
-    .select("*")
+    .select("id, name")
     .eq("invite_code", code)
     .maybeSingle();
 
@@ -53,23 +60,62 @@ export default async function InvitePage({
     return <InvalidCodeState />;
   }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("group_members")
-    .select("user_id")
-    .eq("group_id", group.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // The children this user guards, and which of them are already in the
+  // invited group.
+  const { data: guardianRows, error: guardianError } = await supabase
+    .from("child_guardians")
+    .select("child_id")
+    .eq("user_id", user.id);
 
-  if (membershipError) {
-    throw new Error(membershipError.message);
+  if (guardianError) {
+    throw new Error(guardianError.message);
   }
 
-  if (membership) {
-    redirect("/dashboard");
+  const guardedIds = (guardianRows ?? []).map((row) => row.child_id as string);
+
+  let children: { id: string; name: string }[] = [];
+  const joinedIds = new Set<string>();
+
+  if (guardedIds.length > 0) {
+    const [childrenResult, joinedResult] = await Promise.all([
+      supabase
+        .from("children")
+        .select("id, name")
+        .in("id", guardedIds)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("child_groups")
+        .select("child_id")
+        .eq("group_id", group.id)
+        .in("child_id", guardedIds),
+    ]);
+
+    if (childrenResult.error) {
+      throw new Error(childrenResult.error.message);
+    }
+    if (joinedResult.error) {
+      throw new Error(joinedResult.error.message);
+    }
+
+    children = (childrenResult.data ?? []).map((c) => ({
+      id: c.id as string,
+      name: c.name as string,
+    }));
+    for (const row of joinedResult.data ?? []) {
+      joinedIds.add(row.child_id as string);
+    }
   }
 
-  // Not a member yet: ask first. Nothing is written until "참여하기".
-  const confirm = confirmJoin.bind(null, code);
+  // Every child of this family is already in the group: nothing to ask.
+  if (children.length > 0 && children.every((c) => joinedIds.has(c.id))) {
+    redirect(`/groups/${group.id}`);
+  }
+
+  const firstUnjoinedId = children.find((c) => !joinedIds.has(c.id))?.id;
+
+  // Nothing is written until "참여하기". The action gets the invite code
+  // (bound here, not from the form) and re-resolves the group itself.
+  const confirm = confirmJoin.bind(null, code, from);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
@@ -81,9 +127,69 @@ export default async function InvitePage({
           <span className="text-pink-600">{group.name}</span> 그룹에
           참여할까요? 🎈
         </h1>
-        <p className="mb-5 text-sm text-gray-600">
-          참여하면 아이를 추가하고 친구들과 함께 놀 수 있어요.
-        </p>
+
+        <form id="join-form" action={confirm} className="mb-5 text-left">
+          {children.length > 0 ? (
+            <>
+              <p className="mb-3 text-center text-sm text-gray-600">
+                어떤 아이를 참여시킬까요?
+              </p>
+              <ul className="space-y-2">
+                {children.map((child) => {
+                  const joined = joinedIds.has(child.id);
+                  return (
+                    <li key={child.id}>
+                      <label
+                        className={`flex items-center gap-3 rounded-2xl border-4 border-gray-800 px-4 py-2 font-jua text-lg ${
+                          joined
+                            ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                            : "cursor-pointer bg-yellow-100 text-gray-800 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          name="childId"
+                          value={child.id}
+                          disabled={joined}
+                          defaultChecked={joined || child.id === firstUnjoinedId}
+                          className="h-5 w-5 accent-pink-500"
+                        />
+                        <span className="flex-1">{child.name}</span>
+                        {joined && (
+                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">
+                            이미 참여 중
+                          </span>
+                        )}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : (
+            <label className="block">
+              <span className="mb-2 block text-center text-sm text-gray-600">
+                참여할 아이의 이름을 알려주세요.
+              </span>
+              <span className="mb-1 block font-jua text-gray-800">아이 이름</span>
+              <input
+                type="text"
+                name="childName"
+                required
+                maxLength={20}
+                autoComplete="off"
+                placeholder="예: 지훈"
+                className="w-full rounded-2xl border-4 border-gray-800 bg-white px-4 py-2 font-jua text-lg text-gray-800 outline-none focus:border-pink-500"
+              />
+            </label>
+          )}
+          {errorMessage && (
+            <p role="alert" className="mt-3 text-center text-sm font-bold text-pink-600">
+              {errorMessage}
+            </p>
+          )}
+        </form>
+
         <div className="flex gap-3">
           <form action={declineJoin} className="flex-1">
             <button
@@ -93,14 +199,13 @@ export default async function InvitePage({
               거부하기
             </button>
           </form>
-          <form action={confirm} className="flex-1">
-            <button
-              type="submit"
-              className="w-full rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-lg text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95"
-            >
-              참여하기
-            </button>
-          </form>
+          <button
+            type="submit"
+            form="join-form"
+            className="flex-1 rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-lg text-pink-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+          >
+            참여하기
+          </button>
         </div>
       </div>
     </main>
