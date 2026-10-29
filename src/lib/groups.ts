@@ -4,15 +4,15 @@ import type { Group } from "@/types/db";
 
 export const DUPLICATE_GROUP_NAME_MESSAGE = "이미 같은 이름의 그룹이 있어요";
 
-// Shared by `POST /api/groups/create` (client-side fetch path) and the
-// dashboard's empty-state Server Action (no-JS form path) so group
-// creation has exactly one implementation. Throws on failure; callers
-// decide how to surface that (JSON error response vs. thrown Server
-// Action error).
+// Creates a group and puts the given children in it (`child_groups`).
+// Membership derives from children, so there is no per-user membership row.
+// The caller MUST already have verified that `userId` guards every id in
+// `childIds`. Throws on failure; callers decide how to surface that.
 export async function createGroupForUser(
   supabase: SupabaseClient,
   userId: string,
-  name: string
+  name: string,
+  childIds: string[]
 ): Promise<Group> {
   const inviteCode = await createUniqueInviteCode(async (code) => {
     const { data } = await supabase
@@ -38,12 +38,23 @@ export async function createGroupForUser(
     throw new Error(groupError?.message ?? "그룹 생성에 실패했어요.");
   }
 
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: userId });
+  const uniqueChildIds = Array.from(new Set(childIds));
+  if (uniqueChildIds.length > 0) {
+    const { error: childGroupError } = await supabase
+      .from("child_groups")
+      .insert(
+        uniqueChildIds.map((childId) => ({
+          child_id: childId,
+          group_id: group.id,
+        }))
+      );
 
-  if (memberError) {
-    throw new Error(memberError.message);
+    if (childGroupError) {
+      // Don't leave behind a group no child is in (nobody could see it, and
+      // it would block reusing the name).
+      await supabase.from("groups").delete().eq("id", group.id);
+      throw new Error(childGroupError.message);
+    }
   }
 
   return group as Group;

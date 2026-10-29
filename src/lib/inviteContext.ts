@@ -14,8 +14,8 @@ export interface InviteContext {
  * service client so logged-out visitors can see the group name.
  *
  * Returns null for an unknown code. `fromChildId` comes straight from the
- * URL, so it's only used when that child really belongs to the invited
- * group — otherwise the banner falls back to the no-inviter copy.
+ * URL, so it's only used when that child really is in the invited group
+ * (`child_groups`) — otherwise the banner falls back to the no-inviter copy.
  */
 export async function getInviteContext(
   code: string,
@@ -35,18 +35,26 @@ export async function getInviteContext(
 
   let inviterLabel: string | null = null;
   if (fromChildId) {
-    // A malformed id (not a uuid) makes this query error; treat that the
+    // A malformed id (not a uuid) makes these queries error; treat that the
     // same as "no such child in this group".
-    const { data: child } = await supabase
-      .from("children")
-      .select("name")
-      .eq("id", fromChildId)
+    const { data: membership } = await supabase
+      .from("child_groups")
+      .select("child_id")
+      .eq("child_id", fromChildId)
       .eq("group_id", group.id)
       .maybeSingle();
 
-    const name = (child?.name as string | undefined)?.trim();
-    if (name) {
-      inviterLabel = hasBatchim(name) ? `${name}이네` : `${name}네`;
+    if (membership) {
+      const { data: child } = await supabase
+        .from("children")
+        .select("name")
+        .eq("id", fromChildId)
+        .maybeSingle();
+
+      const name = (child?.name as string | undefined)?.trim();
+      if (name) {
+        inviterLabel = hasBatchim(name) ? `${name}이네` : `${name}네`;
+      }
     }
   }
 

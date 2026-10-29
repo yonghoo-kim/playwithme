@@ -3,13 +3,32 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow } from "@/lib/status";
 import { excludeToken, formatPushPayload, sendGroupPush } from "@/lib/push";
+import { assertGuardian, statusRecipientUserIds } from "@/lib/childAccess";
 
+/**
+ * Sets a child's one status (shared with every group the child is in) and
+ * notifies everyone connected to the child.
+ * Body: `{ childId: string; placeId: string | null; deviceToken?: string }`.
+ */
 export async function POST(request: NextRequest) {
-  const { childId, placeId, deviceToken } = (await request.json()) as {
-    childId: string;
-    placeId: string | null;
-    deviceToken?: string | null;
-  };
+  let body: { childId?: unknown; placeId?: unknown; deviceToken?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
+  }
+
+  const childId = typeof body.childId === "string" ? body.childId : "";
+  const placeId = body.placeId;
+  const deviceToken =
+    typeof body.deviceToken === "string" ? body.deviceToken : null;
+
+  if (
+    !childId ||
+    !(placeId === null || (typeof placeId === "string" && placeId !== ""))
+  ) {
+    return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
+  }
 
   const supabaseAuth = createAuthClient();
   const {
@@ -22,14 +41,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  const { data: guardian } = await supabase
-    .from("child_guardians")
-    .select("user_id")
-    .eq("child_id", childId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!guardian) {
+  if (!(await assertGuardian(supabase, user.id, childId))) {
     return NextResponse.json(
       { error: "이 아이의 보호자만 상태를 바꿀 수 있어요" },
       { status: 403 }
@@ -38,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   const { data: child } = await supabase
     .from("children")
-    .select("group_id, name")
+    .select("name")
     .eq("id", childId)
     .maybeSingle();
 
@@ -49,45 +61,90 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const groupId = child.group_id;
+  let placeName: string | null = null;
+  if (placeId !== null) {
+    // Only the child's family places (created by one of its guardians) —
+    // never another family's place.
+    const { data: place } = await supabase
+      .from("places")
+      .select("name, created_by")
+      .eq("id", placeId)
+      .maybeSingle();
+    if (
+      !place ||
+      !place.created_by ||
+      !(await assertGuardian(supabase, place.created_by as string, childId))
+    ) {
+      return NextResponse.json(
+        { error: "장소를 찾을 수 없어요" },
+        { status: 400 }
+      );
+    }
+    placeName = (place.name as string) ?? "";
+  }
 
-  const row = buildStatusUpsertRow(childId, groupId, placeId);
+  const row = buildStatusUpsertRow(childId, placeId);
   const { error: upsertError } = await supabase
     .from("current_statuses")
-    .upsert(row);
+    .upsert(row, { onConflict: "child_id" });
 
   if (upsertError) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
-  // Every status change notifies the group — arriving somewhere and going
-  // home ("🏠 귀가", placeId null) alike. The status update itself already
-  // succeeded above; a push-sending problem is a side-effect failure, so it's
-  // isolated in its own try/catch and only logged.
+  // Every status change notifies everyone connected to the child — arriving
+  // somewhere and going home ("🏠 귀가", placeId null) alike. The status
+  // update itself already succeeded above; a push-sending problem is a
+  // side-effect failure, so it's isolated in its own try/catch and only
+  // logged.
   try {
-    const [{ data: place }, { data: members }] = await Promise.all([
-      placeId
-        ? supabase.from("places").select("name").eq("id", placeId).single()
-        : Promise.resolve({ data: null }),
-      supabase.from("group_members").select("user_id").eq("group_id", groupId),
-    ]);
+    const { data: ownGroups } = await supabase
+      .from("child_groups")
+      .select("child_id, group_id")
+      .eq("child_id", childId);
 
-    const memberIds = (members ?? []).map((member) => member.user_id);
+    const groupIds = (ownGroups ?? []).map((r) => r.group_id as string);
 
-    if (memberIds.length > 0) {
+    const { data: groupRows } =
+      groupIds.length > 0
+        ? await supabase
+            .from("child_groups")
+            .select("child_id, group_id")
+            .in("group_id", groupIds)
+        : { data: [] as { child_id: string; group_id: string }[] };
+
+    const childGroupRows = (groupRows ?? []) as {
+      child_id: string;
+      group_id: string;
+    }[];
+    const connectedChildIds = Array.from(
+      new Set([childId, ...childGroupRows.map((r) => r.child_id)])
+    );
+
+    const { data: guardianRows } = await supabase
+      .from("child_guardians")
+      .select("child_id, user_id")
+      .in("child_id", connectedChildIds);
+
+    const recipientIds = statusRecipientUserIds(
+      childId,
+      childGroupRows,
+      (guardianRows ?? []) as { child_id: string; user_id: string }[]
+    );
+
+    if (recipientIds.length > 0) {
       const { data: tokenRows } = await supabase
         .from("fcm_tokens")
         .select("token")
-        .in("user_id", memberIds);
+        .in("user_id", recipientIds);
 
-      const allTokens = (tokenRows ?? []).map((tokenRow) => tokenRow.token);
-      const tokens = excludeToken(allTokens, deviceToken ?? null);
+      const allTokens = Array.from(
+        new Set((tokenRows ?? []).map((tokenRow) => tokenRow.token as string))
+      );
+      const tokens = excludeToken(allTokens, deviceToken);
 
       if (tokens.length > 0) {
-        const payload = formatPushPayload(
-          child.name ?? "",
-          placeId ? (place?.name ?? "") : null
-        );
+        const payload = formatPushPayload(child.name ?? "", placeName);
 
         const { failedTokens } = await sendGroupPush(
           getAdminMessaging(),

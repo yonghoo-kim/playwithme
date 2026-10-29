@@ -3,23 +3,22 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import type { Child } from "@/types/db";
 
 /**
- * Creates a new child in a group and makes the caller its first guardian.
- * Body: `{ groupId: string; name: string }`. Returns `{ child: Child }`.
+ * Creates a new child (in no group) and makes the caller its first guardian
+ * and the active child. Body: `{ name: string }`. Returns `{ child: Child }`.
  */
 export async function POST(request: NextRequest) {
-  let body: { groupId?: string; name?: string };
+  let body: { name?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "잘못된 요청이에요." }, { status: 400 });
   }
 
-  const groupId = body.groupId;
-  const name = body.name?.trim();
+  const name = typeof body.name === "string" ? body.name.trim() : "";
 
-  if (!groupId || !name) {
+  if (!name) {
     return NextResponse.json(
-      { error: "그룹과 아이 이름을 입력해주세요." },
+      { error: "아이 이름을 입력해주세요." },
       { status: 400 }
     );
   }
@@ -35,24 +34,10 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  const { data: membership } = await supabase
-    .from("group_members")
-    .select("user_id")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!membership) {
-    return NextResponse.json(
-      { error: "그룹 멤버만 아이를 추가할 수 있어요" },
-      { status: 403 }
-    );
-  }
-
   const { data: child, error: childError } = await supabase
     .from("children")
-    .insert({ group_id: groupId, name })
-    .select()
+    .insert({ name })
+    .select("id, name, created_at")
     .single();
 
   if (childError || !child) {
@@ -67,6 +52,8 @@ export async function POST(request: NextRequest) {
     .insert({ child_id: child.id, user_id: user.id });
 
   if (guardianError) {
+    // Don't leave an orphan child nobody guards.
+    await supabase.from("children").delete().eq("id", child.id);
     return NextResponse.json(
       { error: guardianError.message },
       { status: 500 }

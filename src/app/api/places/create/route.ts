@@ -3,23 +3,24 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import type { Place } from "@/types/db";
 
 /**
- * Creates a new place for a group on the fly (dashboard's "+" button).
- * Body: `{ groupId: string; name: string; iconName: string }`.
+ * Creates a new family place on the fly (dashboard's "+" button), owned by
+ * the caller and so shared with every child they guard (and those
+ * children's other guardians). Body: `{ name: string; iconName: string }`.
  * Returns `{ place: Place }` so the caller can immediately select it.
  */
 export async function POST(request: NextRequest) {
-  let body: { groupId?: string; name?: string; iconName?: string };
+  let body: { name?: unknown; iconName?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "잘못된 요청이에요." }, { status: 400 });
   }
 
-  const groupId = body.groupId;
-  const name = body.name?.trim();
-  const iconName = body.iconName?.trim();
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const iconName =
+    typeof body.iconName === "string" ? body.iconName.trim() : "";
 
-  if (!groupId || !name || !iconName) {
+  if (!name || !iconName) {
     return NextResponse.json(
       { error: "장소 이름과 아이콘을 입력해주세요." },
       { status: 400 }
@@ -39,8 +40,8 @@ export async function POST(request: NextRequest) {
 
   const { data: place, error } = await supabase
     .from("places")
-    .insert({ group_id: groupId, name, icon_name: iconName })
-    .select()
+    .insert({ created_by: user.id, name, icon_name: iconName })
+    .select("id, created_by, name, icon_name, created_at")
     .single();
 
   if (error || !place) {
