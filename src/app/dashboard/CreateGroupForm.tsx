@@ -12,8 +12,8 @@ interface CreateGroupFormProps {
 
 /**
  * "+ 그룹 만들기": a button that opens an inline name form. Creates the group
- * with the active child in it (`POST /api/groups/create`) and goes straight
- * to the new group's page.
+ * with the active child in it (`POST /api/groups/create`), then shows it
+ * opened in the dashboard's group list (`/dashboard?group=<id>`).
  */
 export default function CreateGroupForm({
   childId,
@@ -52,7 +52,15 @@ export default function CreateGroupForm({
         return;
       }
 
-      router.push("/groups/" + data.group.id);
+      // Stay on the dashboard: `?group=` makes the server list the new group
+      // and the accordion opens it. Close the form for the next one.
+      setOpen(false);
+      setName("");
+      setSubmitting(false);
+      router.replace(
+        "/dashboard?group=" + encodeURIComponent(data.group.id),
+        { scroll: false }
+      );
     } catch {
       setError("그룹을 만들지 못했어요. 다시 시도해주세요.");
       setSubmitting(false);

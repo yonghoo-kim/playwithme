@@ -9,10 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Baby, Eye, Users } from "lucide-react";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { createBrowserClient } from "@/lib/supabase/client";
-import StatusCard from "@/components/StatusCard";
 import type { CurrentStatus, Place } from "@/types/db";
 
 export interface ChildStatusView {
@@ -263,102 +261,6 @@ export function FlashFrame({
       }`}
     >
       {children}
-    </div>
-  );
-}
-
-interface RealtimeStatusListProps {
-  /** My child(ren) in this group — compact, read-only lines. */
-  myChildren: ChildStatusView[];
-  /** Every other child in the group — read-only, never a PlaceSelector. */
-  friends: ChildStatusView[];
-  /** Places referenced by the statuses above (any family's). */
-  places: Place[];
-}
-
-/**
- * A group page's live roster: "우리 아이" (compact lines) then "친구들".
- * Everything here is read-only — a child's status is changed only from the
- * dashboard by its own guardians.
- */
-export default function RealtimeStatusList({
-  myChildren,
-  friends,
-  places,
-}: RealtimeStatusListProps) {
-  const allChildren = useMemo(
-    () => [...myChildren, ...friends],
-    [myChildren, friends]
-  );
-  const { resolve } = useLiveStatuses(allChildren, places);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-2" aria-labelledby="my-children">
-        <h2
-          id="my-children"
-          className="flex items-center gap-2 font-jua text-xl text-pink-700"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
-            <Baby size={16} strokeWidth={2.5} className="text-blue-800" />
-          </span>
-          우리 아이
-        </h2>
-
-        {myChildren.map((child) => {
-          const view = resolve(child);
-          return (
-            <FlashFrame key={child.childId} active={view.isFlashing}>
-              <StatusCard
-                compact
-                childName={child.childName}
-                placeName={view.placeName}
-                iconName={view.iconName}
-                updatedAt={view.updatedAt}
-              />
-            </FlashFrame>
-          );
-        })}
-        <p className="px-1 text-xs font-bold text-gray-500">
-          상태는 첫 화면에서 바꿀 수 있어요
-        </p>
-      </section>
-
-      <section className="flex flex-col gap-3" aria-labelledby="friends">
-        <h2
-          id="friends"
-          className="flex items-center gap-2 font-jua text-xl text-pink-700"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
-            <Users size={16} strokeWidth={2.5} className="text-green-800" />
-          </span>
-          친구들
-          <span className="ml-auto flex items-center gap-1 rounded-full border-2 border-gray-300 bg-white px-2 py-0.5 font-sans text-[11px] font-bold text-gray-500">
-            <Eye size={12} strokeWidth={3} aria-hidden />
-            보기 전용
-          </span>
-        </h2>
-
-        {friends.length === 0 ? (
-          <p className="rounded-2xl border-4 border-dashed border-gray-300 bg-white/60 p-4 text-center text-sm font-bold text-gray-600">
-            아직 친구가 없어요 — 초대해보세요 🎈
-          </p>
-        ) : (
-          friends.map((child) => {
-            const view = resolve(child);
-            return (
-              <FlashFrame key={child.childId} active={view.isFlashing}>
-                <StatusCard
-                  childName={child.childName}
-                  placeName={view.placeName}
-                  iconName={view.iconName}
-                  updatedAt={view.updatedAt}
-                />
-              </FlashFrame>
-            );
-          })
-        )}
-      </section>
     </div>
   );
 }

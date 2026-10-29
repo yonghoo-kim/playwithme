@@ -130,7 +130,7 @@ export async function confirmJoin(
     console.error("Failed to set active_child_id:", activeError.message);
   }
 
-  redirect(`/groups/${group.id}`);
+  redirect(`/dashboard?group=${encodeURIComponent(group.id)}`);
 }
 
 // Declining intentionally writes nothing, so revisiting the same invite

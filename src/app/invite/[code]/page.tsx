@@ -108,7 +108,7 @@ export default async function InvitePage({
 
   // Every child of this family is already in the group: nothing to ask.
   if (children.length > 0 && children.every((c) => joinedIds.has(c.id))) {
-    redirect(`/groups/${group.id}`);
+    redirect(`/dashboard?group=${encodeURIComponent(group.id)}`);
   }
 
   const firstUnjoinedId = children.find((c) => !joinedIds.has(c.id))?.id;

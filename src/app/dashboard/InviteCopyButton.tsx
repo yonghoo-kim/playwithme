@@ -9,7 +9,7 @@ interface InviteCopyButtonProps {
 }
 
 /**
- * Small "초대하기" pill next to a group's name (group page header). The
+ * Small "초대하기" pill in an opened dashboard group (above its friends). The
  * invite URL is computed on the server (`buildInviteUrl`); this only copies
  * it.
  */
