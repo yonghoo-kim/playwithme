@@ -84,7 +84,7 @@ export default function NotificationSettingsToggle() {
             type="button"
             onClick={handleEnableClick}
             disabled={requesting}
-            className="shrink-0 rounded-full border-4 border-gray-800 bg-yellow-200 px-3 py-1 text-sm font-bold text-yellow-900 shadow-md shadow-yellow-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+            className="shrink-0 rounded-full border-4 border-gray-800 bg-yellow-200 px-3 py-1 text-sm font-bold text-yellow-900 shadow-md shadow-yellow-200 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
           >
             켜기
           </button>

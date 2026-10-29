@@ -46,7 +46,7 @@ export default function InviteCopyButton({
       type="button"
       onClick={copyLink}
       aria-label={`${groupName} 초대 링크 복사`}
-      className="flex shrink-0 items-center gap-1 rounded-full border-4 border-gray-800 bg-pink-300 px-3 py-1 font-jua text-sm text-pink-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+      className="flex shrink-0 items-center gap-1 rounded-full border-4 border-gray-800 bg-pink-300 px-3 py-1 font-jua text-sm text-pink-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
     >
       {copied ? (
         <>

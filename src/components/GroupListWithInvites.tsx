@@ -72,7 +72,7 @@ export default function GroupListWithInvites({
               type="button"
               onClick={() => copyLink(group)}
               aria-label={`${group.name} 초대 링크 복사`}
-              className="flex shrink-0 items-center gap-1 rounded-2xl border-4 border-gray-800 bg-pink-300 px-3 py-1.5 font-jua text-sm text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+              className="flex shrink-0 items-center gap-1 rounded-2xl border-4 border-gray-800 bg-pink-300 px-3 py-1.5 font-jua text-sm text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95"
             >
               {copied ? (
                 <>

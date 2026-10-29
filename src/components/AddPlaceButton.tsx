@@ -77,7 +77,7 @@ export default function AddPlaceButton({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="장소 추가"
-        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-dashed border-gray-400 bg-white/60 text-gray-500 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-dashed border-gray-400 bg-white/60 text-gray-500 transition-transform hover:scale-105 active:scale-95"
       >
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200 shadow-md shadow-purple-200">
           <Plus size={20} strokeWidth={3} className="text-purple-900" />
@@ -112,7 +112,7 @@ export default function AddPlaceButton({
               onClick={() => setIconName(choiceName)}
               aria-label={choiceName}
               aria-pressed={iconName === choiceName}
-              className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-transform hover:scale-110 active:scale-90 ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 ${
                 iconName === choiceName
                   ? "bg-blue-300 shadow-blue-300"
                   : "bg-gray-100 shadow-gray-200"
@@ -139,14 +139,14 @@ export default function AddPlaceButton({
             setOpen(false);
             setError(null);
           }}
-          className="flex-1 rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-gray-600 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+          className="flex-1 rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-gray-600 transition-transform hover:scale-105 active:scale-95"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="flex-1 rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+          className="flex-1 rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
         >
           추가 ✨
         </button>

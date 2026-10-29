@@ -105,7 +105,7 @@ export default function ChildSwitcher({
               aria-busy={pending}
               onClick={() => selectChild(child.id)}
               disabled={busy && !active}
-              className={`flex shrink-0 items-center gap-2 rounded-full border-4 px-4 py-1.5 text-left transition-all duration-200 hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:cursor-wait ${
+              className={`flex shrink-0 items-center gap-2 rounded-full border-4 px-4 py-1.5 text-left transition-all duration-200 hover:scale-105 active:scale-95 disabled:cursor-wait ${
                 active
                   ? "border-gray-800 bg-pink-300 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
                   : "border-gray-300 bg-white"
@@ -142,7 +142,7 @@ export default function ChildSwitcher({
         <Link
           href="/settings"
           aria-label="아이 추가하기"
-          className="flex shrink-0 items-center gap-1 rounded-full border-4 border-dashed border-gray-400 bg-white/60 px-3 py-1.5 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+          className="flex shrink-0 items-center gap-1 rounded-full border-4 border-dashed border-gray-400 bg-white/60 px-3 py-1.5 transition-transform hover:scale-105 active:scale-95"
         >
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-200 shadow-md shadow-purple-200">
             <Plus size={16} strokeWidth={3} className="text-purple-900" />

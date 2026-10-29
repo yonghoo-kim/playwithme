@@ -30,7 +30,7 @@ export default function NotificationNudge() {
   return (
     <Link
       href="/settings"
-      className="flex items-center gap-2 self-end rounded-full border-4 border-gray-800 bg-yellow-200 px-3 py-1.5 text-sm font-bold text-yellow-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+      className="flex items-center gap-2 self-end rounded-full border-4 border-gray-800 bg-yellow-200 px-3 py-1.5 text-sm font-bold text-yellow-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
     >
       🔔 알림을 켜주세요 — 설정에서 켤 수 있어요
       <span className="flex h-6 w-6 shrink-0 animate-bounce items-center justify-center rounded-full bg-pink-200 shadow-md shadow-pink-200">

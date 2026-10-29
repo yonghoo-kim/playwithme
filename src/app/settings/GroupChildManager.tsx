@@ -129,7 +129,7 @@ export default function GroupChildManager({
               type="button"
               onClick={() => joinChild(child.id)}
               disabled={joiningChildId === child.id}
-              className="w-full rounded-2xl border-4 border-gray-800 bg-green-300 py-2 font-jua text-lg text-green-900 shadow-md shadow-green-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+              className="w-full rounded-2xl border-4 border-gray-800 bg-green-300 py-2 font-jua text-lg text-green-900 shadow-md shadow-green-200 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
             >
               {child.name} 보호자로 연결하기 ✋
             </button>
@@ -149,7 +149,7 @@ export default function GroupChildManager({
         <button
           type="submit"
           disabled={creating}
-          className="w-full rounded-2xl border-4 border-gray-800 bg-blue-300 py-2 font-jua text-lg text-blue-900 shadow-md shadow-blue-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+          className="w-full rounded-2xl border-4 border-gray-800 bg-blue-300 py-2 font-jua text-lg text-blue-900 shadow-md shadow-blue-200 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
         >
           새 아이 추가 ✨
         </button>

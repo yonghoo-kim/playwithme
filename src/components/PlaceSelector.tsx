@@ -71,7 +71,7 @@ export default function PlaceSelector({
         type="button"
         onClick={() => selectPlace(null)}
         disabled={selectingPlaceId === HOME_SENTINEL}
-        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-gray-800 bg-white px-2 py-2 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-gray-800 bg-white px-2 py-2 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
       >
         <span className="font-jua text-sm text-gray-700">🏠 귀가</span>
       </button>
