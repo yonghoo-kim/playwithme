@@ -69,7 +69,12 @@ export default function StatusCard({
       </div>
 
       {updatedAt && (
-        <span className="shrink-0 rounded-full border-2 border-gray-800 bg-yellow-200 px-2 py-1 text-xs font-bold text-yellow-900">
+        <span
+          // Relative time is computed from Date.now(), which can differ by a
+          // minute between the server render and client hydration.
+          suppressHydrationWarning
+          className="shrink-0 rounded-full border-2 border-gray-800 bg-yellow-200 px-2 py-1 text-xs font-bold text-yellow-900"
+        >
           {formatRelativeTime(updatedAt)}
         </span>
       )}

@@ -10,6 +10,7 @@ interface PlaceSelectorProps {
   childId: string;
   groupId: string;
   places: Place[];
+  onSelected?: (placeId: string | null) => void;
 }
 
 /**
@@ -17,8 +18,9 @@ interface PlaceSelectorProps {
  * stays a Server Component (it fetches `places` with the service client);
  * this component owns click-handling and calls `POST /api/status/update`
  * whenever a place is picked — whether from an existing `PlaceButton` or a
- * place just created via `AddPlaceButton`. Mirrors the client/server split
- * already used by `NotificationBanner`.
+ * place just created via `AddPlaceButton`. After a successful update it
+ * calls the optional `onSelected(placeId)` so the parent can reflect the new
+ * status immediately (Realtime delivers the same change to everyone else).
  */
 
 // Sentinel used to track the home (귀가) button's in-flight state in the
@@ -30,13 +32,14 @@ export default function PlaceSelector({
   childId,
   groupId,
   places,
+  onSelected,
 }: PlaceSelectorProps) {
   const [selectingPlaceId, setSelectingPlaceId] = useState<string | null>(null);
 
   async function selectPlace(placeId: string | null) {
     setSelectingPlaceId(placeId ?? HOME_SENTINEL);
     try {
-      await fetch("/api/status/update", {
+      const res = await fetch("/api/status/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -46,6 +49,9 @@ export default function PlaceSelector({
           deviceToken: getStoredFcmToken(),
         }),
       });
+      if (res.ok) {
+        onSelected?.(placeId);
+      }
     } finally {
       setSelectingPlaceId(null);
     }
@@ -65,7 +71,7 @@ export default function PlaceSelector({
         type="button"
         onClick={() => selectPlace(null)}
         disabled={selectingPlaceId === HOME_SENTINEL}
-        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-gray-800 bg-white px-2 py-2 shadow-[4px_4px_0px_rgba(31,41,55,1)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
+        className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-gray-800 bg-white px-2 py-2 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
       >
         <span className="font-jua text-sm text-gray-700">🏠 귀가</span>
       </button>
