@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { getPlaceVisual } from "@/lib/icons";
 
 interface AddPlaceButtonProps {
-  onSelect: (placeId: string) => void;
+  onSelect: (placeId: string, placeName: string) => void;
 }
 
 // Fixed set of icon choices offered when creating a place on the fly.
@@ -53,7 +53,7 @@ export default function AddPlaceButton({ onSelect }: AddPlaceButtonProps) {
         body: JSON.stringify({ name: trimmed, iconName }),
       });
       const data = (await res.json().catch(() => ({}))) as {
-        place?: { id: string };
+        place?: { id: string; name: string };
         error?: string;
       };
 
@@ -62,7 +62,7 @@ export default function AddPlaceButton({ onSelect }: AddPlaceButtonProps) {
         return;
       }
 
-      onSelect(data.place.id);
+      onSelect(data.place.id, data.place.name);
       setOpen(false);
       setName("");
       setIconName(ICON_CHOICES[0].name);

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import AppHeader from "@/components/AppHeader";
 import { redirect } from "next/navigation";
 import { Baby, Bell, UserPlus } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
@@ -90,17 +90,10 @@ export default async function SettingsPage() {
   );
 
   return (
-    <main className="min-h-screen px-4 pb-32 pt-8">
+    <main className="min-h-screen px-4 pb-32 pt-20">
+      <AppHeader />
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/dashboard"
-            className="self-start rounded-full border-4 border-gray-800 bg-white px-4 py-1.5 font-jua text-pink-700 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
-          >
-            ← 홈으로
-          </Link>
-          <h1 className="text-2xl font-jua text-pink-700">설정 ⚙️</h1>
-        </div>
+        <h1 className="text-2xl font-jua text-pink-700">설정 ⚙️</h1>
 
         <section className="flex flex-col gap-3">
           <SectionHeading

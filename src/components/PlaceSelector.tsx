@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Place } from "@/types/db";
 import PlaceButton from "@/components/PlaceButton";
 import AddPlaceButton from "@/components/AddPlaceButton";
 import { getStoredFcmToken } from "@/lib/firebase/client";
+import { withDirectionParticle } from "@/lib/korean";
 
 interface PlaceSelectorProps {
   /** A child the signed-in user guards (the server re-checks). */
@@ -17,17 +18,24 @@ interface PlaceSelectorProps {
 /**
  * Status controls for one of MY children (dashboard only — never rendered
  * for another family's child). Picking a place — an existing `PlaceButton`,
- * one just created via `AddPlaceButton`, or "🏠 귀가" — POSTs
- * `/api/status/update`. The child has one status shared with all of its
- * groups. After a successful update it calls `onSelected(placeId)` so the
- * parent can reflect the change immediately (Realtime delivers the same
- * change to everyone else).
+ * one just created via `AddPlaceButton`, or "🏠 집으로" — first asks
+ * "○○로 가시겠습니까?", then POSTs `/api/status/update`. The child has one
+ * status shared with all of its groups. After a successful update it calls
+ * `onSelected(placeId)` so the parent can reflect the change immediately
+ * (Realtime delivers the same change to everyone else).
+ *
+ * Order is fixed: places, then 집으로, then 추가 always last.
  */
 
-// Sentinel used to track the home (귀가) button's in-flight state in the
+// Sentinel used to track the home (집으로) button's in-flight state in the
 // same `selectingPlaceId` field as place selections, since `placeId` itself
 // is `null` for the home case.
 const HOME_SENTINEL = "__home__";
+
+interface PendingChoice {
+  placeId: string | null;
+  placeName: string;
+}
 
 export default function PlaceSelector({
   childId,
@@ -36,6 +44,21 @@ export default function PlaceSelector({
 }: PlaceSelectorProps) {
   const [selectingPlaceId, setSelectingPlaceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingChoice | null>(null);
+
+  useEffect(() => {
+    if (!pending) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPending(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pending]);
+
+  function askToGo(placeId: string | null, placeName: string) {
+    setError(null);
+    setPending({ placeId, placeName });
+  }
 
   async function selectPlace(placeId: string | null) {
     setSelectingPlaceId(placeId ?? HOME_SENTINEL);
@@ -65,21 +88,33 @@ export default function PlaceSelector({
     }
   }
 
+  function confirm() {
+    if (!pending) return;
+    const { placeId } = pending;
+    setPending(null);
+    void selectPlace(placeId);
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-start gap-3">
         {places.map((place) => (
-          <PlaceButton key={place.id} place={place} onSelect={selectPlace} />
+          <PlaceButton key={place.id} place={place} onSelect={askToGo} />
         ))}
-        <AddPlaceButton onSelect={selectPlace} />
         <button
           type="button"
-          onClick={() => selectPlace(null)}
+          onClick={() => askToGo(null, "집")}
           disabled={selectingPlaceId === HOME_SENTINEL}
           className="flex h-[76px] w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-4 border-gray-800 bg-white px-2 py-2 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
         >
-          <span className="font-jua text-sm text-gray-700">🏠 귀가</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-200 shadow-md shadow-orange-200">
+            <span aria-hidden className="text-[20px] leading-none">
+              🏠
+            </span>
+          </span>
+          <span className="font-jua text-xs text-gray-700">집으로</span>
         </button>
+        <AddPlaceButton onSelect={askToGo} />
         {selectingPlaceId && (
           <span className="sr-only" role="status">
             장소를 업데이트하는 중이에요
@@ -90,6 +125,45 @@ export default function PlaceSelector({
         <p role="alert" className="text-xs font-bold text-red-600">
           {error}
         </p>
+      )}
+
+      {pending && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 px-6"
+          onClick={() => setPending(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="place-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+            className="animate-page-enter flex w-full max-w-xs flex-col gap-4 rounded-3xl border-4 border-gray-800 bg-white p-5 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
+          >
+            <p
+              id="place-confirm-title"
+              className="text-center font-jua text-xl text-blue-900"
+            >
+              {withDirectionParticle(pending.placeName)} 가시겠습니까?
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPending(null)}
+                className="flex-1 rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-gray-600 transition-transform hover:scale-105 active:scale-95"
+              >
+                아니요
+              </button>
+              <button
+                type="button"
+                autoFocus
+                onClick={confirm}
+                className="flex-1 rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-pink-900 transition-transform hover:scale-105 active:scale-95"
+              >
+                네, 갈래요!
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

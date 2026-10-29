@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Baby, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
@@ -12,6 +11,7 @@ import CreateGroupForm from "./CreateGroupForm";
 import GroupAccordion, { type AccordionGroup } from "./GroupAccordion";
 import NotificationNudge from "./NotificationNudge";
 import FcmTokenSync from "@/components/FcmTokenSync";
+import AppHeader from "@/components/AppHeader";
 import type {
   Child,
   ChildGroup,
@@ -223,18 +223,9 @@ export default async function DashboardPage({
   const status = statusRow as CurrentStatus | null;
 
   return (
-    <main className="min-h-screen px-4 pb-32 pt-6">
+    <main className="min-h-screen px-4 pb-32 pt-20">
+      <AppHeader />
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
-        <header className="flex items-center justify-between gap-3">
-          <p className="font-jua text-xl text-pink-700">나랑 놀자 🎈</p>
-          <Link
-            href="/settings"
-            className="flex items-center rounded-full border-4 border-gray-800 bg-white px-3 py-1 font-jua text-sm text-blue-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
-          >
-            설정 ⚙️
-          </Link>
-        </header>
-
         <NotificationNudge />
         <FcmTokenSync />
 

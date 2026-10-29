@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Every status change notifies everyone connected to the child — arriving
-  // somewhere and going home ("🏠 귀가", placeId null) alike. The status
+  // somewhere and going home ("🏠 집으로", placeId null) alike. The status
   // update itself already succeeded above; a push-sending problem is a
   // side-effect failure, so it's isolated in its own try/catch and only
   // logged.
