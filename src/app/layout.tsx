@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Jua } from "next/font/google";
 import "./globals.css";
 import NavigationProgress from "./NavigationProgress";
+import PlaygroundBackground from "@/components/PlaygroundBackground";
+import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
 
 const jua = Jua({
   subsets: ["latin"],
@@ -20,10 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <link rel="manifest" href="/manifest.json" />
-      <meta name="theme-color" content="#FEF3C7" />
-      <body className={`${jua.variable} font-jua bg-yellow-50 antialiased`}>
+    // data-phase is set by the inline script before hydration.
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#9DDCFF" />
+        <script dangerouslySetInnerHTML={{ __html: DAY_PHASE_SCRIPT }} />
+      </head>
+      <body className={`${jua.variable} font-jua bg-sky-100 antialiased`}>
+        <PlaygroundBackground />
         <NavigationProgress />
         {children}
       </body>

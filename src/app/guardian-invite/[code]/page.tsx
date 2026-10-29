@@ -34,7 +34,7 @@ function NoticeCard({
   linkLabel: string;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
+    <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border-4 border-gray-800 bg-white p-6 text-center shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
         <span
           className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full ${iconWrapClass}`}
@@ -140,7 +140,7 @@ export default async function GuardianInvitePage({
   const accept = acceptGuardianInvite.bind(null, code);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
+    <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border-4 border-gray-800 bg-white p-6 text-center shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
         <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-pink-200 shadow-md shadow-pink-200">
           <HeartHandshake size={28} strokeWidth={2.5} className="text-pink-700" />

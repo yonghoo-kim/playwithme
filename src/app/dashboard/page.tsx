@@ -223,7 +223,7 @@ export default async function DashboardPage({
   const status = statusRow as CurrentStatus | null;
 
   return (
-    <main className="min-h-screen bg-yellow-50 px-4 py-6">
+    <main className="min-h-screen px-4 pb-32 pt-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
         <header className="flex items-center justify-between gap-3">
           <p className="font-jua text-xl text-pink-700">나랑 놀자 🎈</p>

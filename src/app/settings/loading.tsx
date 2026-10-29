@@ -1,6 +1,6 @@
 export default function SettingsLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-yellow-50">
+    <main className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <span
           aria-hidden="true"

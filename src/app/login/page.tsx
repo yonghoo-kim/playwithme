@@ -19,7 +19,7 @@ export default async function LoginPage({
     : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
+    <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {invite && <InviteBanner invite={invite} />}
         <LoginForm

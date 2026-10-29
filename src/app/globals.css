@@ -48,3 +48,121 @@ body {
     animation: none;
   }
 }
+
+/* Sunny playground background (src/components/PlaygroundBackground.tsx).
+   <html data-phase> picks the sky; layers crossfade when it changes. */
+:root {
+  --pg-hill-h: clamp(110px, 18vh, 170px);
+  --pg-hill-back: #7bd88f;
+  --pg-hill-front: #5bc274;
+}
+
+:root[data-phase="morning"] {
+  --pg-hill-back: #9bdda6;
+  --pg-hill-front: #7bcf8e;
+}
+
+:root[data-phase="evening"] {
+  --pg-hill-back: #9fcf8a;
+  --pg-hill-front: #7fbb6f;
+}
+
+:root[data-phase="night"] {
+  --pg-hill-back: #8bb8a8;
+  --pg-hill-front: #6fa392;
+}
+
+.pg-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pg-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+
+.pg-morning {
+  background: linear-gradient(180deg, #ffd9c7 0%, #ffe9d6 45%, #e6f4ff 100%);
+}
+
+.pg-day {
+  background: linear-gradient(180deg, #9ddcff 0%, #c5ecff 45%, #e3f6ff 100%);
+}
+
+.pg-evening {
+  background: linear-gradient(180deg, #ffb59e 0%, #ffd3a8 45%, #ffefd9 100%);
+}
+
+.pg-night {
+  background: linear-gradient(180deg, #a9a6e8 0%, #cfcbf5 45%, #eeebff 100%);
+}
+
+:root:not([data-phase]) .pg-day,
+:root[data-phase="morning"] .pg-morning,
+:root[data-phase="day"] .pg-day,
+:root[data-phase="evening"] .pg-evening,
+:root[data-phase="night"] .pg-night {
+  opacity: 1;
+}
+
+.pg-hills {
+  height: var(--pg-hill-h);
+}
+
+.pg-hill-back {
+  fill: var(--pg-hill-back);
+  transition: fill 1.5s ease;
+}
+
+.pg-hill-front {
+  fill: var(--pg-hill-front);
+  transition: fill 1.5s ease;
+}
+
+.pg-slide {
+  bottom: calc(var(--pg-hill-h) * 0.2);
+}
+
+.pg-low-sun {
+  bottom: calc(var(--pg-hill-h) * 0.45);
+}
+
+.pg-spin {
+  transform-origin: 60px 60px;
+  animation: pg-spin 60s linear infinite;
+}
+
+@keyframes pg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pg-twinkle {
+  animation: pg-twinkle 3s ease-in-out infinite;
+}
+
+@keyframes pg-twinkle {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-layer,
+  .pg-hill-back,
+  .pg-hill-front {
+    transition: none;
+  }
+
+  .pg-spin,
+  .pg-twinkle {
+    animation: none;
+  }
+}
