@@ -126,7 +126,7 @@ body {
 }
 
 .pg-slide {
-  bottom: calc(var(--pg-hill-h) * 0.2);
+  bottom: calc(var(--pg-hill-h) * 0.26);
 }
 
 .pg-low-sun {

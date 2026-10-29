@@ -131,7 +131,7 @@ export default function PlaygroundBackground() {
               style={{ animationDelay: `${i * 0.6}s` }}
               d="M0 -3 L0.7 -0.7 L3 0 L0.7 0.7 L0 3 L-0.7 0.7 L-3 0 L-0.7 -0.7Z"
               fill="#FFF7D1"
-              transform={`translate(${x} ${y}) scale(${s})`}
+              transform={`translate(${x} ${y}) scale(${s * 0.45})`}
             />
           ))}
         </svg>
@@ -172,7 +172,7 @@ export default function PlaygroundBackground() {
         />
       </svg>
 
-      <svg viewBox="0 0 80 70" className="pg-slide absolute left-[9%] w-16">
+      <svg viewBox="0 0 80 70" className="pg-slide absolute left-[8%] w-20">
         <rect x="10" y="10" width="5" height="58" rx="2.5" fill="#F48FB1" />
         <rect x="24" y="10" width="5" height="58" rx="2.5" fill="#F48FB1" />
         {[24, 36, 48].map((y) => (
