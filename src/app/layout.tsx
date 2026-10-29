@@ -4,6 +4,7 @@ import "./globals.css";
 import NavigationProgress from "./NavigationProgress";
 import PlaygroundBackground from "@/components/PlaygroundBackground";
 import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
+import { WEATHER_CACHE_SCRIPT } from "@/lib/weatherCache";
 
 const jua = Jua({
   subsets: ["latin"],
@@ -22,12 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // data-phase is set by the inline script before hydration.
+    // data-phase / data-weather are set by the inline scripts before hydration.
     <html lang="ko" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#9DDCFF" />
         <script dangerouslySetInnerHTML={{ __html: DAY_PHASE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: WEATHER_CACHE_SCRIPT }} />
       </head>
       <body className={`${jua.variable} font-jua bg-sky-100 antialiased`}>
         <PlaygroundBackground />

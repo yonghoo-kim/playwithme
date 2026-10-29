@@ -11,6 +11,11 @@ import {
   type Coords,
 } from "@/lib/location";
 import type { WeatherCondition, WeatherSummary } from "@/lib/weather";
+import {
+  applyWeather,
+  readCachedWeather,
+  saveCachedWeather,
+} from "@/lib/weatherCache";
 
 const REFRESH_MS = 10 * 60_000;
 
@@ -46,17 +51,27 @@ type ChipState =
 export default function WeatherChip() {
   const [state, setState] = useState<ChipState | null>(null);
 
+  // Show the last known weather right away (the inline head script already
+  // applied it to the sky), then refresh below.
+  useEffect(() => {
+    const cached = readCachedWeather();
+    if (cached) setState({ kind: "ready", weather: cached });
+  }, []);
+
   const load = useCallback(async (coords: Coords) => {
     try {
       const res = await fetch(`/api/weather?lat=${coords.lat}&lon=${coords.lon}`);
       if (!res.ok) throw new Error(String(res.status));
       const weather = (await res.json()) as WeatherSummary;
-      document.documentElement.dataset.weather = weather.condition;
+      applyWeather(weather);
+      saveCachedWeather(weather);
       setState({ kind: "ready", weather });
     } catch {
-      // No weather: keep the plain time-of-day sky, hide the chip.
-      delete document.documentElement.dataset.weather;
-      setState(null);
+      // Keep a recent cached sky; with none, fall back to the plain
+      // time-of-day sky and hide the chip.
+      const cached = readCachedWeather();
+      applyWeather(cached);
+      setState(cached ? { kind: "ready", weather: cached } : null);
     }
   }, []);
 

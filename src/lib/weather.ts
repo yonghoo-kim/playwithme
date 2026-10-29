@@ -4,10 +4,22 @@
 
 export type WeatherCondition = "clear" | "partly" | "cloudy" | "rain" | "snow";
 
+/** How hard it rains / snows (drives the amount drawn); null when dry. */
+export type PrecipLevel = "light" | "moderate" | "heavy";
+
 export interface WeatherSummary {
   /** Rounded °C, or null when the nowcast had no temperature. */
   temp: number | null;
   condition: WeatherCondition;
+  level: PrecipLevel | null;
+}
+
+// RN1 (1-hour amount, mm) usually arrives as a number string, but KMA also
+// uses text like "강수없음" or "1mm 미만" / "50.0mm 이상".
+function hourlyAmount(raw: string | undefined): number {
+  const value = parseFloat(raw ?? "");
+  if (!Number.isFinite(value)) return 0;
+  return raw?.includes("미만") ? value / 2 : value;
 }
 
 /** Lambert conformal conic projection used by KMA (기상청 격자, 5km). */
@@ -103,9 +115,19 @@ export function summarizeKma(ncst: NcstItem[], fcst: FcstItem[]): WeatherSummary
     : null;
 
   const pty = value("PTY");
-  if (pty === "3" || pty === "7") return { temp, condition: "snow" };
+  const amount = hourlyAmount(value("RN1"));
+  if (pty === "3" || pty === "7") {
+    // 눈날림 (7) is always light; otherwise 1mm+ of water is 함박눈.
+    const level = pty === "3" && amount >= 1 ? "heavy" : "light";
+    return { temp, condition: "snow", level };
+  }
   if (pty === "1" || pty === "2" || pty === "5" || pty === "6") {
-    return { temp, condition: "rain" };
+    // KMA wording: 약한 비 <3mm, 보통 비 3-15mm, 강한 비 15mm+.
+    // 빗방울 (5, 6) is always light.
+    const drizzle = pty === "5" || pty === "6";
+    const level: PrecipLevel =
+      drizzle || amount < 3 ? "light" : amount < 15 ? "moderate" : "heavy";
+    return { temp, condition: "rain", level };
   }
 
   const skies = fcst.filter((item) => item.category === "SKY");
@@ -116,5 +138,5 @@ export function summarizeKma(ncst: NcstItem[], fcst: FcstItem[]): WeatherSummary
       : nearest?.fcstValue === "3"
         ? "partly"
         : "clear";
-  return { temp, condition };
+  return { temp, condition, level: null };
 }

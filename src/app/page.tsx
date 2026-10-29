@@ -1,9 +1,11 @@
 import Link from "next/link";
+import PlaygroundIntro from "@/components/PlaygroundIntro";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <h1 className="on-sky text-4xl font-jua text-pink-700">나랑 놀자 🎈</h1>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 pb-24">
+      <PlaygroundIntro />
+      <h1 className="on-sky animate-title-bounce text-4xl font-jua text-pink-700">나랑 놀자 🎈</h1>
       <p className="on-sky text-lg text-blue-900">친구들과 실시간으로 놀이 상태를 공유해요</p>
 
       <div className="flex w-full max-w-xs flex-col gap-3">

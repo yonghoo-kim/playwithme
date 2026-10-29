@@ -34,10 +34,11 @@ describe('kmaBaseTimes', () => {
   })
 })
 
-const ncst = (pty: string, t1h = '9.7') => [
+const ncst = (pty: string, t1h = '9.7', rn1 = '0') => [
   { category: 'PTY', obsrValue: pty },
   { category: 'T1H', obsrValue: t1h },
   { category: 'REH', obsrValue: '85' },
+  { category: 'RN1', obsrValue: rn1 },
 ]
 const fcst = (sky: string) => [
   { category: 'SKY', fcstTime: '2300', fcstValue: sky },
@@ -46,19 +47,52 @@ const fcst = (sky: string) => [
 
 describe('summarizeKma', () => {
   it('reads rain and snow from the nowcast precipitation type', () => {
-    expect(summarizeKma(ncst('1'), fcst('1'))).toEqual({ temp: 10, condition: 'rain' })
+    expect(summarizeKma(ncst('1', '9.7', '1.5'), fcst('1'))).toEqual({
+      temp: 10,
+      condition: 'rain',
+      level: 'light',
+    })
     expect(summarizeKma(ncst('5'), fcst('1')).condition).toBe('rain')
-    expect(summarizeKma(ncst('3', '-1.6'), fcst('4'))).toEqual({ temp: -2, condition: 'snow' })
+    expect(summarizeKma(ncst('3', '-1.6', '0.4'), fcst('4'))).toEqual({
+      temp: -2,
+      condition: 'snow',
+      level: 'light',
+    })
     expect(summarizeKma(ncst('7'), fcst('4')).condition).toBe('snow')
   })
 
+  it('grades rain by the hourly amount (KMA: <3 약한, 3-15 보통, 15+ 강한)', () => {
+    expect(summarizeKma(ncst('1', '9', '2.9'), []).level).toBe('light')
+    expect(summarizeKma(ncst('1', '9', '3'), []).level).toBe('moderate')
+    expect(summarizeKma(ncst('1', '9', '14.9'), []).level).toBe('moderate')
+    expect(summarizeKma(ncst('1', '9', '15'), []).level).toBe('heavy')
+    // 빗방울 is always light, whatever the amount.
+    expect(summarizeKma(ncst('5', '9', '4'), []).level).toBe('light')
+  })
+
+  it('grades snow as light below 1mm and heavy (함박눈) from 1mm', () => {
+    expect(summarizeKma(ncst('3', '-1', '0.9'), []).level).toBe('light')
+    expect(summarizeKma(ncst('3', '-1', '1'), []).level).toBe('heavy')
+    // 눈날림 is always light.
+    expect(summarizeKma(ncst('7', '-1', '2'), []).level).toBe('light')
+  })
+
+  it('reads amounts KMA sends as text ("강수없음", "1mm 미만")', () => {
+    expect(summarizeKma(ncst('1', '9', '강수없음'), []).level).toBe('light')
+    expect(summarizeKma(ncst('1', '9', '50.0mm 이상'), []).level).toBe('heavy')
+  })
+
   it('uses the nearest forecast sky when it is not raining or snowing', () => {
-    expect(summarizeKma(ncst('0'), fcst('1')).condition).toBe('clear')
+    expect(summarizeKma(ncst('0'), fcst('1'))).toEqual({
+      temp: 10,
+      condition: 'clear',
+      level: null,
+    })
     expect(summarizeKma(ncst('0'), fcst('3')).condition).toBe('partly')
     expect(summarizeKma(ncst('0'), fcst('4')).condition).toBe('cloudy')
   })
 
   it('degrades to clear with no temperature when data is missing', () => {
-    expect(summarizeKma([], [])).toEqual({ temp: null, condition: 'clear' })
+    expect(summarizeKma([], [])).toEqual({ temp: null, condition: 'clear', level: null })
   })
 })
