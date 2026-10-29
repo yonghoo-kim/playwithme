@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
-import { createGroupForUser } from "@/lib/groups";
+import {
+  createGroupForUser,
+  DUPLICATE_GROUP_NAME_MESSAGE,
+} from "@/lib/groups";
 
 export async function POST(request: NextRequest) {
   let body: { name?: string };
@@ -31,6 +34,12 @@ export async function POST(request: NextRequest) {
     const group = await createGroupForUser(createServiceClient(), user.id, name);
     return NextResponse.json({ group });
   } catch (err) {
+    if (err instanceof Error && err.message === DUPLICATE_GROUP_NAME_MESSAGE) {
+      return NextResponse.json(
+        { error: DUPLICATE_GROUP_NAME_MESSAGE },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "그룹 생성에 실패했어요." },
       { status: 500 }

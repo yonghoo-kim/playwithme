@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createUniqueInviteCode } from "@/lib/invite";
 import type { Group } from "@/types/db";
 
+export const DUPLICATE_GROUP_NAME_MESSAGE = "이미 같은 이름의 그룹이 있어요";
+
 // Shared by `POST /api/groups/create` (client-side fetch path) and the
 // dashboard's empty-state Server Action (no-JS form path) so group
 // creation has exactly one implementation. Throws on failure; callers
@@ -23,11 +25,16 @@ export async function createGroupForUser(
 
   const { data: group, error: groupError } = await supabase
     .from("groups")
-    .insert({ name, invite_code: inviteCode })
+    .insert({ name, invite_code: inviteCode, created_by: userId })
     .select()
     .single();
 
   if (groupError || !group) {
+    // `unique(created_by, name)`: the same user already has a group with
+    // this name (uniqueness is per-creator, not global).
+    if (groupError?.code === "23505") {
+      throw new Error(DUPLICATE_GROUP_NAME_MESSAGE);
+    }
     throw new Error(groupError?.message ?? "그룹 생성에 실패했어요.");
   }
 

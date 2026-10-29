@@ -73,5 +73,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Make the newly added child the active one so the dashboard switches to
+  // it immediately. Non-fatal: the child was created correctly either way.
+  const { error: activeError } = await supabase
+    .from("users")
+    .update({ active_child_id: child.id })
+    .eq("id", user.id);
+
+  if (activeError) {
+    console.error("Failed to set active_child_id:", activeError.message);
+  }
+
   return NextResponse.json({ child: child as Child });
 }

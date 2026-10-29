@@ -72,5 +72,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Make the newly joined child the active one so the dashboard switches to
+  // it immediately. Non-fatal: the guardian link is correct either way.
+  const { error: activeError } = await supabase
+    .from("users")
+    .update({ active_child_id: childId })
+    .eq("id", user.id);
+
+  if (activeError) {
+    console.error("Failed to set active_child_id:", activeError.message);
+  }
+
   return NextResponse.json({ ok: true });
 }
