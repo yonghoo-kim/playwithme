@@ -165,7 +165,10 @@ export default async function DashboardPage() {
     .filter((child) => !myChildIdSet.has(child.id))
     .map(toView);
 
-  const inviteUrl = activeGroup ? buildInviteUrl(activeGroup.invite_code) : null;
+  // Attribute the shared link to the active child ("지훈이네가 초대했어요").
+  const inviteUrl = activeGroup
+    ? buildInviteUrl(activeGroup.invite_code, activeChild.id)
+    : null;
 
   return (
     <main className="min-h-screen bg-yellow-50 px-4 py-6">
@@ -174,7 +177,7 @@ export default async function DashboardPage() {
           <p className="font-jua text-xl text-pink-700">나랑 놀자 🎈</p>
           <Link
             href="/settings"
-            className="flex items-center rounded-full border-4 border-gray-800 bg-white px-3 py-1 font-jua text-sm text-blue-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+            className="flex items-center rounded-full border-4 border-gray-800 bg-white px-3 py-1 font-jua text-sm text-blue-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
           >
             설정 ⚙️
           </Link>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Frown, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
+import { firstParam, inviteQuery } from "@/lib/inviteQuery";
 import { confirmJoin, declineJoin } from "./confirm-actions";
 
 function InvalidCodeState() {
@@ -21,18 +22,23 @@ function InvalidCodeState() {
 
 export default async function InvitePage({
   params,
+  searchParams,
 }: {
   params: { code: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { code } = params;
+  const from = firstParam(searchParams.from);
 
   const authClient = createAuthClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
+  // Logged out: most invitees already have an account, so land on login
+  // (which shows "○○네가 초대했어요" and links on to signup).
   if (!user) {
-    redirect(`/signup?invite=${code}`);
+    redirect(`/login${inviteQuery(code, from)}`);
   }
 
   const supabase = createServiceClient();
@@ -82,7 +88,7 @@ export default async function InvitePage({
           <form action={declineJoin} className="flex-1">
             <button
               type="submit"
-              className="w-full rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-lg text-gray-600 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+              className="w-full rounded-2xl border-4 border-gray-800 bg-gray-100 py-2 font-jua text-lg text-gray-600 transition-transform hover:scale-105 active:scale-95"
             >
               거부하기
             </button>
@@ -90,7 +96,7 @@ export default async function InvitePage({
           <form action={confirm} className="flex-1">
             <button
               type="submit"
-              className="w-full rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-lg text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+              className="w-full rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-lg text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95"
             >
               참여하기
             </button>

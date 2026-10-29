@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
+import { inviteQuery } from "@/lib/inviteQuery";
 
 // Takes the invite code (not a raw group id) and re-resolves the group on
 // the server, so the only way to join a group is to hold its invite code —
@@ -13,7 +14,7 @@ export async function confirmJoin(code: string) {
   } = await authClient.auth.getUser();
 
   if (!user) {
-    redirect(`/signup?invite=${encodeURIComponent(code)}`);
+    redirect(`/login${inviteQuery(code)}`);
   }
 
   const supabase = createServiceClient();

@@ -78,11 +78,17 @@ export default async function SettingsPage() {
     );
   const children = (childRows ?? []) as Child[];
 
-  const groupsWithInvites = groups.map((group) => ({
-    id: group.id,
-    name: group.name,
-    inviteUrl: buildInviteUrl(group.invite_code),
-  }));
+  // Attribute each group's link to the first child I guard there (if any).
+  const groupsWithInvites = groups.map((group) => {
+    const myFirstChild = children.find(
+      (child) => child.group_id === group.id && myChildIds.has(child.id)
+    );
+    return {
+      id: group.id,
+      name: group.name,
+      inviteUrl: buildInviteUrl(group.invite_code, myFirstChild?.id),
+    };
+  });
 
   return (
     <main className="min-h-screen bg-yellow-50 px-4 py-8">
@@ -92,7 +98,7 @@ export default async function SettingsPage() {
             <Link
               href="/dashboard"
               aria-label="대시보드로 돌아가기"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 border-gray-800 bg-white shadow-md shadow-pink-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 border-gray-800 bg-white shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95"
             >
               <ArrowLeft size={18} strokeWidth={3} className="text-pink-700" />
             </Link>
