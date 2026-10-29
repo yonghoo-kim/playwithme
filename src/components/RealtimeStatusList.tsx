@@ -22,6 +22,8 @@ interface RealtimeStatusListProps {
   myChildren: ChildStatusView[];
   /** Every other child in this group (read-only, never a PlaceSelector). */
   friends: ChildStatusView[];
+  /** My other children in this group, not shown — ignore their events. */
+  hiddenChildIds: string[];
   groupPlaces: Place[];
 }
 
@@ -58,6 +60,7 @@ export default function RealtimeStatusList({
   groupId,
   myChildren,
   friends,
+  hiddenChildIds,
   groupPlaces,
 }: RealtimeStatusListProps) {
   const router = useRouter();
@@ -76,12 +79,14 @@ export default function RealtimeStatusList({
   // always sees the current places/children without resubscribing.
   const knownPlaceIdsRef = useRef<Set<string>>(new Set());
   const knownChildIdsRef = useRef<Set<string>>(new Set());
+  const hiddenChildIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     knownPlaceIdsRef.current = new Set(groupPlaces.map((place) => place.id));
     knownChildIdsRef.current = new Set(
       [...myChildren, ...friends].map((child) => child.childId)
     );
-  }, [groupPlaces, myChildren, friends]);
+    hiddenChildIdsRef.current = new Set(hiddenChildIds);
+  }, [groupPlaces, myChildren, friends, hiddenChildIds]);
 
   // Refresh at most once per unknown place/child id, so a burst of events
   // about a just-created place doesn't trigger a burst of refreshes.
@@ -121,6 +126,9 @@ export default function RealtimeStatusList({
 
   const applyStatus = useCallback(
     (childId: string, placeId: string | null, updatedAt: string | null) => {
+      if (hiddenChildIdsRef.current.has(childId)) {
+        return;
+      }
       if (!knownChildIdsRef.current.has(childId)) {
         // A child added to this group after the page rendered.
         refreshOnceFor(`child:${childId}`);
@@ -162,22 +170,42 @@ export default function RealtimeStatusList({
       applyStatus(row.child_id, row.place_id ?? null, row.updated_at ?? null);
     };
 
-    const channel = supabase
-      .channel("status-" + groupId)
-      .on<CurrentStatus>(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "current_statuses",
-          filter: "group_id=eq." + groupId,
-        },
-        handleChange
-      )
-      .subscribe();
+    // Realtime checks RLS as the subscriber, so the socket must carry the
+    // signed-in user's token before joining — otherwise it joins as anon,
+    // every row is filtered out, and no event ever arrives.
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) {
+        return;
+      }
+      if (session) {
+        supabase.realtime.setAuth(session.access_token);
+      }
+      channel = supabase
+        .channel("status-" + groupId)
+        .on<CurrentStatus>(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "current_statuses",
+            filter: "group_id=eq." + groupId,
+          },
+          handleChange
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [groupId, applyStatus]);
 

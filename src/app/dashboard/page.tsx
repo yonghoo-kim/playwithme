@@ -153,9 +153,14 @@ export default async function DashboardPage() {
     };
   };
 
+  // Only the switched-to child is shown as "내 아이"; my other children in
+  // this group are reached through the switcher, not listed here.
   const myChildrenHere = groupChildren
-    .filter((child) => myChildIdSet.has(child.id))
+    .filter((child) => child.id === activeChild.id)
     .map(toView);
+  const hiddenMyChildIds = groupChildren
+    .filter((child) => child.id !== activeChild.id && myChildIdSet.has(child.id))
+    .map((child) => child.id);
   const friends = groupChildren
     .filter((child) => !myChildIdSet.has(child.id))
     .map(toView);
@@ -198,10 +203,11 @@ export default async function DashboardPage() {
         </div>
 
         <RealtimeStatusList
-          key={groupId}
+          key={activeChild.id}
           groupId={groupId}
           myChildren={myChildrenHere}
           friends={friends}
+          hiddenChildIds={hiddenMyChildIds}
           groupPlaces={groupPlaces}
         />
       </div>
