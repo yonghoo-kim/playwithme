@@ -3,36 +3,44 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Baby } from "lucide-react";
-import type { Child } from "@/types/db";
 
-interface NoChildStateProps {
+interface ChildOption {
+  id: string;
+  name: string;
+}
+
+interface GroupChildManagerProps {
   groupId: string;
-  existingChildren: Child[];
-  /** Render as an inline card (no full-viewport centering) for use at the
-   * bottom of the normal dashboard, where a guardian of 1+ children can
-   * still join or add another. Defaults to the full-page empty state. */
-  embedded?: boolean;
+  groupName: string;
+  /** Children in this group the signed-in user already guards. */
+  myChildren: ChildOption[];
+  /** Children in this group the signed-in user does NOT guard yet. */
+  joinableChildren: ChildOption[];
 }
 
 /**
- * Shown instead of the normal dashboard view when the signed-in user guards
- * zero children in their group — never render place-selection controls for
- * someone with no child to drive them. Lets them either attach themselves as
- * an additional guardian of an existing child (`POST /api/children/join`) or
- * create a brand-new one (`POST /api/children/create`); either action
- * refreshes the page so the server component re-fetches and renders the
- * normal per-child view.
+ * Per-group "아이 추가/연결" card on the Settings page: shows the user's own
+ * children in this group, lets them attach as a guardian of an existing
+ * child in this group (`POST /api/children/join`) or create a new one
+ * (`POST /api/children/create`). Both APIs make that child active, so on
+ * success we go straight to the dashboard showing it.
  */
-export default function NoChildState({
+export default function GroupChildManager({
   groupId,
-  existingChildren,
-  embedded = false,
-}: NoChildStateProps) {
+  groupName,
+  myChildren,
+  joinableChildren,
+}: GroupChildManagerProps) {
   const router = useRouter();
   const [joiningChildId, setJoiningChildId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function goToDashboard() {
+    router.push("/dashboard");
+    router.refresh();
+  }
 
   async function joinChild(childId: string) {
     setError(null);
@@ -46,11 +54,11 @@ export default function NoChildState({
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body?.error ?? "아이를 선택하지 못했어요.");
+        setError(body?.error ?? "아이를 연결하지 못했어요.");
         return;
       }
 
-      router.refresh();
+      goToDashboard();
     } finally {
       setJoiningChildId(null);
     }
@@ -79,27 +87,43 @@ export default function NoChildState({
       }
 
       setName("");
-      router.refresh();
+      goToDashboard();
     } finally {
       setCreating(false);
     }
   }
 
-  const card = (
-    <div className="w-full max-w-sm rounded-2xl border-4 border-gray-800 bg-white p-6 text-center shadow-[4px_4px_0px_rgba(31,41,55,1)]">
-      <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
-        <Baby size={28} strokeWidth={2.5} className="text-blue-800" />
-      </span>
+  return (
+    <div className="rounded-2xl border-4 border-gray-800 bg-white p-5 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
+      <div className="mb-3 flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
+          <Baby size={20} strokeWidth={2.5} className="text-blue-800" />
+        </span>
+        <h3 className="min-w-0 flex-1 truncate font-jua text-lg text-pink-700">
+          {groupName}
+        </h3>
+      </div>
 
-      <h1 className="mb-5 text-xl font-jua text-pink-700">
-        {embedded
-          ? "다른 아이도 선택하거나 추가해주세요! 👶"
-          : "함께할 아이를 선택하거나 추가해주세요! 👶"}
-      </h1>
+      {myChildren.length > 0 ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {myChildren.map((child) => (
+            <span
+              key={child.id}
+              className="rounded-full border-2 border-gray-800 bg-green-200 px-3 py-1 text-sm font-bold text-green-900"
+            >
+              {child.name}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mb-4 text-sm font-bold text-blue-900">
+          이 그룹에서 함께할 아이를 선택하거나 추가해주세요! 👶
+        </p>
+      )}
 
-      {existingChildren.length > 0 && (
-        <div className="mb-5 flex flex-col gap-2">
-          {existingChildren.map((child) => (
+      {joinableChildren.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2">
+          {joinableChildren.map((child) => (
             <button
               key={child.id}
               type="button"
@@ -107,7 +131,7 @@ export default function NoChildState({
               disabled={joiningChildId === child.id}
               className="w-full rounded-2xl border-4 border-gray-800 bg-green-300 py-2 font-jua text-lg text-green-900 shadow-md shadow-green-200 transition-transform hover:scale-110 hover:-translate-y-1 active:scale-90 active:rotate-3 disabled:opacity-60"
             >
-              {child.name} 선택하기 ✋
+              {child.name} 보호자로 연결하기 ✋
             </button>
           ))}
         </div>
@@ -119,7 +143,7 @@ export default function NoChildState({
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          placeholder="아이 이름"
+          placeholder="새 아이 이름"
           className="w-full rounded-2xl border-2 border-gray-800 bg-yellow-50 px-3 py-2 text-center outline-none"
         />
         <button
@@ -133,15 +157,5 @@ export default function NoChildState({
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </div>
-  );
-
-  if (embedded) {
-    return card;
-  }
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-yellow-50 px-4">
-      {card}
-    </main>
   );
 }
