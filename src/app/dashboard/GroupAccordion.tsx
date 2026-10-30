@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Eye, Users } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, Eye, MessageCircle, Users } from "lucide-react";
 import StatusCard from "@/components/StatusCard";
 import {
   FlashFrame,
@@ -151,7 +152,7 @@ export default function GroupAccordion({
               <div className="min-h-0 overflow-hidden">
                 {/* Room on every side for the cards' shadow and flash ring. */}
                 <div className="ml-4 mt-3 flex flex-col gap-3 border-l-4 border-dashed border-gray-300 pb-3 pl-3 pr-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-jua text-lg text-pink-700">
                       친구들
                     </span>
@@ -159,7 +160,14 @@ export default function GroupAccordion({
                       <Eye size={12} strokeWidth={3} aria-hidden />
                       보기 전용
                     </span>
-                    <span className="ml-auto">
+                    <span className="ml-auto flex items-center gap-2">
+                      <Link
+                        href={`/chat/${group.id}`}
+                        className="flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-3 py-1 font-jua text-sm text-yellow-900 transition-transform hover:scale-105 active:scale-95"
+                      >
+                        <MessageCircle size={14} strokeWidth={2.5} aria-hidden />
+                        채팅
+                      </Link>
                       <InviteCopyButton
                         groupName={group.name}
                         inviteUrl={group.inviteUrl}

@@ -134,6 +134,8 @@ export function showForegroundPushes(): () => void {
   try {
     return onMessage(getFirebaseMessaging(), async (payload) => {
       const data = payload.data ?? {};
+      // Already looking at it (e.g. this group's chat): no popup.
+      if (data.url && data.url === window.location.pathname) return;
       const registration =
         (await navigator.serviceWorker.getRegistration(PUSH_SCOPE)) ??
         (await navigator.serviceWorker.ready);
