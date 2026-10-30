@@ -1,5 +1,10 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getMessaging, getToken, type Messaging } from "firebase/messaging";
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+  type Messaging,
+} from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -105,6 +110,46 @@ async function currentDeviceToken(): Promise<string | null> {
   });
 
   return token || null;
+}
+
+const PUSH_SCOPE = "/firebase-cloud-messaging-push-scope";
+
+/**
+ * While the app is open on screen, FCM hands pushes to the page instead of
+ * the service worker — with no listener they were silently dropped (a
+ * friend's status change made no notification if you had the app open).
+ * Show the same system notification the worker would. Returns an
+ * unsubscribe function.
+ */
+export function showForegroundPushes(): () => void {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("Notification" in window) ||
+    Notification.permission !== "granted"
+  ) {
+    return () => undefined;
+  }
+
+  try {
+    return onMessage(getFirebaseMessaging(), async (payload) => {
+      const data = payload.data ?? {};
+      const registration =
+        (await navigator.serviceWorker.getRegistration(PUSH_SCOPE)) ??
+        (await navigator.serviceWorker.ready);
+      // Same look as public/firebase-messaging-sw.js.
+      await registration.showNotification(data.title || "나랑 놀자", {
+        body: data.body || "",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/badge-96.png",
+        tag: data.tag || undefined,
+        renotify: !!data.tag,
+        data: { url: data.url || "/dashboard" },
+      } as NotificationOptions);
+    });
+  } catch {
+    return () => undefined;
+  }
 }
 
 /**

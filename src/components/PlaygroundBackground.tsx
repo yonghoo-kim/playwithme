@@ -108,8 +108,15 @@ const STARS: [number, number, number][] = [
  * caps on the hills. Sun/moon wrappers carry .pg-sun so overcast weather can
  * fade them out.
  */
-export default function PlaygroundBackground() {
+export default function PlaygroundBackground({
+  syncPhase = true,
+}: {
+  /** False for extra copies (e.g. a full-screen loader): only the root one
+   * keeps <html data-phase> up to date. */
+  syncPhase?: boolean;
+}) {
   useEffect(() => {
+    if (!syncPhase) return;
     applyCurrentPhase();
     const timer = window.setInterval(applyCurrentPhase, 60_000);
     const onVisible = () => {
@@ -120,7 +127,7 @@ export default function PlaygroundBackground() {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [syncPhase]);
 
   return (
     <div aria-hidden className="pg-bg">

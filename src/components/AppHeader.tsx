@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Settings } from "lucide-react";
 import WeatherChip from "@/components/WeatherChip";
+import FcmTokenSync from "@/components/FcmTokenSync";
 
 /**
  * Signed-in screen frame: the weather chip top-left, one round button
@@ -22,6 +23,7 @@ export default function AppHeader({
 
   return (
     <main className="min-h-screen px-4 pb-32 pt-4">
+      <FcmTokenSync />
       <div className="mx-auto mb-2 flex w-full max-w-md flex-wrap items-center justify-end gap-2">
         <span className="mr-auto">
           <WeatherChip />

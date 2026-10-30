@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import SlideLoader from "@/components/SlideLoader";
+import PlaygroundBackground from "@/components/PlaygroundBackground";
 import { withDirectionParticle } from "@/lib/korean";
 
 export interface SwitcherChild {
@@ -124,10 +125,12 @@ export default function ChildSwitcher({
       {pendingId && (
         <div
           role="status"
-          className="animate-page-enter fixed inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-sm"
+          className="animate-page-enter fixed inset-0 z-50 flex flex-col items-center justify-center gap-2"
         >
+          {/* The same sky, time of day and weather as the page behind it. */}
+          <PlaygroundBackground syncPhase={false} />
           <SlideLoader />
-          <p className="font-jua text-lg text-pink-700">
+          <p className="on-sky font-jua text-lg text-pink-700">
             {withDirectionParticle(
               myChildren.find((child) => child.id === pendingId)?.name ?? ""
             )}{" "}

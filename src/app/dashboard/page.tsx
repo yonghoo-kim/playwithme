@@ -9,7 +9,6 @@ import ChildSwitcher from "@/components/ChildSwitcher";
 import ActiveChildStatus from "./ActiveChildStatus";
 import GroupAccordion, { type AccordionGroup } from "./GroupAccordion";
 import NotificationNudge from "./NotificationNudge";
-import FcmTokenSync from "@/components/FcmTokenSync";
 import AppHeader from "@/components/AppHeader";
 import WeatherHint from "@/components/WeatherHint";
 import PermissionGate from "@/components/PermissionGate";
@@ -226,7 +225,6 @@ export default async function DashboardPage({
   return (
     <AppHeader aside={<NotificationNudge />}>
       <div className="mx-auto flex w-full max-w-md flex-col gap-4">
-        <FcmTokenSync />
 
         <ChildSwitcher
           myChildren={myChildren.map((child) => ({
