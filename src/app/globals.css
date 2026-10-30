@@ -57,54 +57,109 @@ body {
   }
 }
 
-/* Sliding kid in src/app/PastelLoading.tsx: up the ladder, a pause on top,
-   then down the chute (the curve is sampled at a few points). */
-.pg-slider {
-  transform-box: view-box;
-  transform: translate(86px, 46px);
-  animation: pg-slide 3.2s linear infinite;
+/* Running kids loader (src/components/RunningKidsLoader.tsx): everyone
+   crosses left to right on the same 2.4s loop, offset by negative delays so
+   the ball leads and the kids trail it; legs and arms swing, bodies bob. */
+.rk-run {
+  animation: rk-run 2.4s linear infinite;
 }
 
-@keyframes pg-slide {
-  0% {
-    transform: translate(51px, 152px);
-    opacity: 0;
+@keyframes rk-run {
+  from {
+    transform: translateX(-40px);
   }
-  5% {
-    opacity: 1;
+  to {
+    transform: translateX(280px);
   }
-  40% {
-    transform: translate(51px, 46px);
+}
+
+.rk-ball {
+  animation: rk-bounce 0.6s infinite;
+}
+
+.rk-ground {
+  animation: rk-ground 0.4s linear infinite;
+}
+
+@keyframes rk-ground {
+  to {
+    transform: translateX(-36px);
   }
-  46%,
-  54% {
-    transform: translate(86px, 46px);
+}
+
+.rk-cloud {
+  animation: rk-cloud 7s linear infinite;
+}
+
+@keyframes rk-cloud {
+  from {
+    transform: translateX(260px);
   }
-  61% {
-    transform: translate(111px, 61px);
+  to {
+    transform: translateX(-30px);
   }
-  67% {
-    transform: translate(138px, 95px);
-  }
-  73% {
-    transform: translate(168px, 129px);
-  }
-  79% {
-    transform: translate(205px, 146px);
-  }
-  92% {
-    transform: translate(205px, 146px);
-    opacity: 1;
-  }
+}
+
+@keyframes rk-bounce {
+  0%,
   100% {
-    transform: translate(205px, 146px);
-    opacity: 0;
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  }
+  50% {
+    transform: translateY(-30px);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4);
+  }
+}
+
+.rk-bob {
+  animation: rk-bob 0.14s ease-in-out infinite alternate;
+}
+
+@keyframes rk-bob {
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+.rk-leg,
+.rk-arm {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: rk-swing 0.28s ease-in-out infinite alternate;
+}
+
+.rk-alt {
+  animation-direction: alternate-reverse;
+}
+
+@keyframes rk-swing {
+  from {
+    transform: rotate(-38deg);
+  }
+  to {
+    transform: rotate(38deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pg-slider {
+  .rk-run,
+  .rk-ball,
+  .rk-ground,
+  .rk-cloud,
+  .rk-bob,
+  .rk-leg,
+  .rk-arm {
     animation: none;
+  }
+
+  /* Still picture: kids spread out behind the ball, clouds in the sky. */
+  .rk-run {
+    transform: translateX(var(--rk-x, 0px));
+  }
+
+  .rk-cloud {
+    transform: translateX(150px);
   }
 }
 

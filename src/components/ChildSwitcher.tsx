@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import SlideLoader from "@/components/SlideLoader";
+import RunningKidsLoader from "@/components/RunningKidsLoader";
 import PlaygroundBackground from "@/components/PlaygroundBackground";
 import { withDirectionParticle } from "@/lib/korean";
 
@@ -129,7 +129,7 @@ export default function ChildSwitcher({
         >
           {/* The same sky, time of day and weather as the page behind it. */}
           <PlaygroundBackground syncPhase={false} />
-          <SlideLoader />
+          <RunningKidsLoader />
           <p className="on-sky font-jua text-lg text-pink-700">
             {withDirectionParticle(
               myChildren.find((child) => child.id === pendingId)?.name ?? ""

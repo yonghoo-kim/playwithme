@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Baby, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { familyPlaces, getGuardedChildIds } from "@/lib/childAccess";
 import { buildInviteUrl } from "@/lib/inviteUrl";
@@ -223,9 +223,8 @@ export default async function DashboardPage({
   const status = statusRow as CurrentStatus | null;
 
   return (
-    <AppHeader aside={<NotificationNudge />}>
-      <div className="mx-auto flex w-full max-w-md flex-col gap-4">
-
+    <AppHeader
+      lead={
         <ChildSwitcher
           myChildren={myChildren.map((child) => ({
             id: child.id,
@@ -233,23 +232,17 @@ export default async function DashboardPage({
           }))}
           activeChildId={activeChild.id}
         />
+      }
+      aside={<NotificationNudge />}
+    >
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4">
         <WeatherHint />
         <PermissionGate />
 
         <section className="flex flex-col gap-3" aria-labelledby="my-child">
-          <h1
-            id="my-child"
-            className="on-sky flex items-center gap-2 font-jua text-2xl text-pink-700"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
-              <Baby size={18} strokeWidth={2.5} className="text-blue-800" />
-            </span>
+          <h1 id="my-child" className="sr-only">
             {activeChild.name} 지금 어디예요?
           </h1>
-          <p className="on-sky -mt-1 px-1 text-xs font-bold text-gray-500">
-            모든 그룹 친구들에게 똑같이 보여요
-          </p>
-
           <ActiveChildStatus
             key={activeChild.id}
             child={{
@@ -273,7 +266,7 @@ export default async function DashboardPage({
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-300 shadow-md shadow-yellow-200">
               <Users size={16} strokeWidth={2.5} className="text-yellow-900" />
             </span>
-            {activeChild.name}의 그룹
+            그룹
           </h2>
 
           {childGroups.length === 0 ? (

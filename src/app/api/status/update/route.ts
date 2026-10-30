@@ -62,12 +62,15 @@ export async function POST(request: NextRequest) {
   }
 
   let placeName: string | null = null;
+  // Quiet places (places.notify = false, e.g. the daycare) update the
+  // status without a push. `*` so this still works before migration 0010.
+  let placeNotifies = true;
   if (placeId !== null) {
     // Only the child's family places (created by one of its guardians) —
     // never another family's place.
     const { data: place } = await supabase
       .from("places")
-      .select("name, created_by")
+      .select("*")
       .eq("id", placeId)
       .maybeSingle();
     if (
@@ -81,7 +84,17 @@ export async function POST(request: NextRequest) {
       );
     }
     placeName = (place.name as string) ?? "";
+    placeNotifies = place.notify !== false;
   }
+
+  // Tapping the place the child is already at (or 집으로 while already home
+  // — no status row also means home) changes nothing worth a push.
+  const { data: previous } = await supabase
+    .from("current_statuses")
+    .select("place_id")
+    .eq("child_id", childId)
+    .maybeSingle();
+  const unchanged = ((previous?.place_id as string | null) ?? null) === placeId;
 
   const row = buildStatusUpsertRow(childId, placeId);
   const { error: upsertError } = await supabase
@@ -96,11 +109,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Every status change notifies everyone connected to the child — arriving
-  // somewhere and going home ("🏠 집으로", placeId null) alike. The status
-  // update itself already succeeded above; a push-sending problem is a
-  // side-effect failure, so it's isolated in its own try/catch and only
-  // logged.
+  // Every real status change notifies everyone connected to the child —
+  // arriving somewhere and going home ("🏠 집으로", placeId null) alike —
+  // except repeats and quiet places. The status update itself already
+  // succeeded above; a push-sending problem is a side-effect failure, so
+  // it's isolated in its own try/catch and only logged.
+  if (unchanged || !placeNotifies) {
+    return NextResponse.json({ ok: true, notified: false });
+  }
   try {
     const { data: ownGroups } = await supabase
       .from("child_groups")

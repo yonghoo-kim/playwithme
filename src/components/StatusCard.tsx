@@ -8,6 +8,10 @@ interface StatusCardProps {
   updatedAt: string | null;
   /** One-line variant (a group page's "우리 아이" row). */
   compact?: boolean;
+  /** Compact only: leave the name out (it is already on screen). */
+  hideName?: boolean;
+  /** Compact only: no border/background, to sit inside another card. */
+  bare?: boolean;
 }
 
 /**
@@ -49,11 +53,17 @@ export default function StatusCard({
   iconName,
   updatedAt,
   compact = false,
+  hideName = false,
+  bare = false,
 }: StatusCardProps) {
   if (compact) {
     const visual = placeName ? getPlaceVisual(iconName ?? "") : null;
     return (
-      <div className="flex items-center gap-2 rounded-2xl border-2 border-gray-800 bg-white px-3 py-2">
+      <div
+        className={`flex items-center gap-2 ${
+          bare ? "" : "rounded-2xl border-2 border-gray-800 bg-white px-3 py-2"
+        }`}
+      >
         <span
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
             visual ? "bg-green-200" : "bg-gray-100"
@@ -70,10 +80,18 @@ export default function StatusCard({
           )}
         </span>
         <p className="min-w-0 flex-1 truncate text-sm">
-          <span className="font-jua text-base text-blue-900">{childName}</span>{" "}
-          <span className="font-bold text-pink-700">
-            {placeName ? `· ${placeName}` : "· 집에 있어요 🏠"}
-          </span>
+          {hideName ? (
+            <span className="font-jua text-lg text-blue-900">
+              {placeName ? `${placeName}에 있어요` : "집에 있어요 🏠"}
+            </span>
+          ) : (
+            <>
+              <span className="font-jua text-base text-blue-900">{childName}</span>{" "}
+              <span className="font-bold text-pink-700">
+                {placeName ? `· ${placeName}` : "· 집에 있어요 🏠"}
+              </span>
+            </>
+          )}
         </p>
         {placeName && updatedAt && <TimeBadge updatedAt={updatedAt} />}
       </div>

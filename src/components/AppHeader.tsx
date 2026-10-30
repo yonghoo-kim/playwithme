@@ -7,14 +7,18 @@ import WeatherChip from "@/components/WeatherChip";
 import FcmTokenSync from "@/components/FcmTokenSync";
 
 /**
- * Signed-in screen frame: the weather chip top-left, one round button
+ * Signed-in screen frame: optional lead (child pills) and the weather chip
+ * on the left, one round button
  * top-right that flips between 설정 (on home) and 홈 (on settings), then the
  * page content. Scrolls with the page (nothing is pinned).
  */
 export default function AppHeader({
+  lead,
   aside,
   children,
 }: {
+  /** Leftmost, e.g. the child pills on home; the weather chip follows it. */
+  lead?: React.ReactNode;
   /** Shown left of the button, e.g. the "알림을 켜주세요" nudge. */
   aside?: React.ReactNode;
   children: React.ReactNode;
@@ -25,9 +29,16 @@ export default function AppHeader({
     <main className="min-h-screen px-4 pb-32 pt-4">
       <FcmTokenSync />
       <div className="mx-auto mb-2 flex w-full max-w-md flex-wrap items-center justify-end gap-2">
-        <span className="mr-auto">
-          <WeatherChip />
-        </span>
+        {lead ? (
+          <>
+            <div className="mr-auto min-w-0">{lead}</div>
+            <WeatherChip />
+          </>
+        ) : (
+          <span className="mr-auto">
+            <WeatherChip />
+          </span>
+        )}
         {aside}
         <Link
           href={onSettings ? "/dashboard" : "/settings"}

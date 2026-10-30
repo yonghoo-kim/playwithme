@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import StatusCard from "@/components/StatusCard";
 import PlaceSelector from "@/components/PlaceSelector";
+import HomeSuggestion from "./HomeSuggestion";
 import {
   FlashFrame,
   useLiveStatuses,
@@ -18,9 +19,9 @@ interface ActiveChildStatusProps {
 }
 
 /**
- * The dashboard's own-child block: live status card (realtime on
- * `current_statuses` for this one child, so a co-guardian's change shows up
- * without a refresh) plus the place controls.
+ * The dashboard's own-child block, one card: the live status line
+ * (realtime on `current_statuses` for this one child, so a co-guardian's
+ * change shows up without a refresh) above the place controls.
  */
 export default function ActiveChildStatus({
   child,
@@ -31,22 +32,35 @@ export default function ActiveChildStatus({
   const view = resolve(child);
 
   return (
-    <div className="flex flex-col gap-3">
-      <FlashFrame active={view.isFlashing}>
+    <FlashFrame active={view.isFlashing}>
+      <div className="flex flex-col gap-3 rounded-3xl border-4 border-gray-800 bg-white/90 p-3 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
+        <HomeSuggestion
+          childId={child.childId}
+          childName={child.childName}
+          placeId={view.placeId}
+          updatedAt={view.updatedAt}
+          onWentHome={() =>
+            applyStatus(child.childId, null, new Date().toISOString())
+          }
+        />
+        {/* The name is already on the selected pill above. */}
         <StatusCard
           childName={child.childName}
           placeName={view.placeName}
           iconName={view.iconName}
           updatedAt={view.updatedAt}
+          compact
+          hideName
+          bare
         />
-      </FlashFrame>
-      <PlaceSelector
-        childId={child.childId}
-        places={places}
-        onSelected={(placeId) =>
-          applyStatus(child.childId, placeId, new Date().toISOString())
-        }
-      />
-    </div>
+        <PlaceSelector
+          childId={child.childId}
+          places={places}
+          onSelected={(placeId) =>
+            applyStatus(child.childId, placeId, new Date().toISOString())
+          }
+        />
+      </div>
+    </FlashFrame>
   );
 }
