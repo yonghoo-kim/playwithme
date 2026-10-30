@@ -88,7 +88,7 @@ function Runner({ look }: { look: KidLook }) {
 }
 
 export default function RunningKidsLoader({
-  className = "h-28 w-56",
+  className = "w-full max-w-md",
 }: {
   className?: string;
 }) {
@@ -111,10 +111,12 @@ export default function RunningKidsLoader({
         </g>
       </g>
 
-      <ellipse cx="120" cy="104" rx="116" ry="7" fill="#7BD88F" />
+      {/* Wide ground from edge to edge, like the playground background. */}
+      <path d="M0 99 C60 94 170 95 240 98 L240 112 L0 112Z" fill="#7BD88F" />
+      <path d="M0 107 C80 104 170 105 240 107 L240 112 L0 112Z" fill="#5BC274" />
       <g className="rk-ground">
         {Array.from({ length: 9 }, (_, i) => (
-          <rect key={i} x={10 + i * 36} y="104" width="10" height="2.5" rx="1.25" fill="#4FAF66" />
+          <rect key={i} x={10 + i * 36} y="102" width="10" height="2.5" rx="1.25" fill="#4FAF66" />
         ))}
       </g>
 

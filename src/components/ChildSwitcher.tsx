@@ -51,6 +51,17 @@ export default function ChildSwitcher({
 
   const busy = pendingId !== null || isPending;
 
+  // While the full-screen loader is up, the page behind it must not scroll.
+  useEffect(() => {
+    if (!pendingId) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [pendingId]);
+
   async function selectChild(childId: string) {
     if (childId === activeChildId || busy) {
       return;
@@ -125,7 +136,7 @@ export default function ChildSwitcher({
       {pendingId && (
         <div
           role="status"
-          className="animate-page-enter fixed inset-0 z-50 flex flex-col items-center justify-center gap-2"
+          className="animate-page-enter fixed inset-0 z-50 flex touch-none flex-col items-center justify-center gap-2 overflow-hidden overscroll-none"
         >
           {/* The same sky, time of day and weather as the page behind it. */}
           <PlaygroundBackground syncPhase={false} />
