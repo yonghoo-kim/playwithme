@@ -186,25 +186,23 @@ export default function GroupAccordion({
                           key={friend.childId}
                           active={view.isFlashing}
                         >
-                          <div className="relative">
-                            <StatusCard
-                              childName={friend.childName}
-                              placeName={view.placeName}
-                              iconName={view.iconName}
-                              updatedAt={view.updatedAt}
-                              going={view.going}
-                            />
-                            {/* 1:1 chat with this friend's family, as a
-                                sticker on the card's top edge. */}
-                            <Link
-                              href={`/chat/direct/${encodeURIComponent(friend.childId)}`}
-                              aria-label={directChatTitle(friend.childName)}
-                              className="absolute -top-3 right-3 z-10 flex items-center gap-1 rounded-full border-2 border-gray-800 bg-pink-100 px-2 py-0.5 font-jua text-xs text-pink-800 transition-transform hover:scale-105 active:scale-95"
-                            >
-                              <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
-                              채팅
-                            </Link>
-                          </div>
+                          <StatusCard
+                            childName={friend.childName}
+                            placeName={view.placeName}
+                            iconName={view.iconName}
+                            updatedAt={view.updatedAt}
+                            going={view.going}
+                            action={
+                              <Link
+                                href={`/chat/direct/${encodeURIComponent(friend.childId)}`}
+                                aria-label={directChatTitle(friend.childName)}
+                                className="flex shrink-0 items-center gap-1 rounded-full border-2 border-gray-800 bg-pink-100 px-2 py-1 font-jua text-xs text-pink-800 transition-transform hover:scale-105 active:scale-95"
+                              >
+                                <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
+                                채팅
+                              </Link>
+                            }
+                          />
                         </FlashFrame>
                       );
                     })

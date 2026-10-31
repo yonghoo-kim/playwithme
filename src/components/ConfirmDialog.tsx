@@ -8,6 +8,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Optional third choice, shown full-width under the yes/no row. */
+  extra?: { label: string; onClick: () => void };
 }
 
 /**
@@ -20,6 +22,7 @@ export default function ConfirmDialog({
   cancelLabel = "아니요",
   onConfirm,
   onCancel,
+  extra,
 }: ConfirmDialogProps) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -64,6 +67,15 @@ export default function ConfirmDialog({
             {confirmLabel}
           </button>
         </div>
+        {extra && (
+          <button
+            type="button"
+            onClick={extra.onClick}
+            className="-mt-2 rounded-2xl border-4 border-gray-800 bg-sky-200 py-2 font-jua text-sky-900 transition-transform hover:scale-105 active:scale-95"
+          >
+            {extra.label}
+          </button>
+        )}
       </div>
     </div>
   );

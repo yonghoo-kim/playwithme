@@ -18,15 +18,13 @@ interface PlaceSelectorProps {
 
 /**
  * Status controls for one of MY children (dashboard only — never rendered
- * for another family's child). A two-option toggle on top picks how the
- * place is meant: "도착 📍" (there now, the default) or "가는 중 🚶" (on the
- * way). Picking a place — an existing `PlaceButton`, one just created via
- * `AddPlaceButton`, or "🏠 집으로" — first asks for confirmation, then POSTs
- * `/api/status/update` with `{ placeId, going }`. The child has one status
- * shared with all of its groups. After a successful update it calls
- * `onSelected(placeId, going)` so the parent can reflect the change
- * immediately (Realtime delivers the same change to everyone else), and the
- * toggle goes back to 도착.
+ * for another family's child). Picking a place — an existing `PlaceButton`,
+ * one just created via `AddPlaceButton`, or "🏠 집으로" — asks
+ * "○○로 가시겠습니까?" with 아니요 / 네, 갈래요! (there now) / 가는 중이에요
+ * (on the way), then POSTs `/api/status/update` with `{ placeId, going }`.
+ * The child has one status shared with all of its groups. After a successful
+ * update it calls `onSelected(placeId, going)` so the parent can reflect the
+ * change immediately (Realtime delivers the same change to everyone else).
  *
  * Order is fixed: places, then 집으로, then 추가 always last.
  */
@@ -41,11 +39,6 @@ interface PendingChoice {
   placeName: string;
 }
 
-const MODES = [
-  { going: false, label: "도착", emoji: "📍", on: "bg-green-200 text-green-900" },
-  { going: true, label: "가는 중", emoji: "🚶", on: "bg-sky-200 text-sky-900" },
-] as const;
-
 export default function PlaceSelector({
   childId,
   places,
@@ -54,7 +47,6 @@ export default function PlaceSelector({
   const [selectingPlaceId, setSelectingPlaceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingChoice | null>(null);
-  const [going, setGoing] = useState(false);
 
   const closeDialog = useCallback(() => setPending(null), []);
 
@@ -72,43 +64,18 @@ export default function PlaceSelector({
       setError(failure);
       return;
     }
-    setGoing(false);
     onSelected?.(placeId, asGoing);
   }
 
-  function confirm() {
+  function confirm(asGoing: boolean) {
     if (!pending) return;
     const { placeId } = pending;
     setPending(null);
-    void selectPlace(placeId, going);
+    void selectPlace(placeId, asGoing);
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div
-        role="group"
-        aria-label="도착했나요, 가는 중인가요?"
-        className="flex gap-2"
-      >
-        {MODES.map((mode) => {
-          const selected = going === mode.going;
-          return (
-            <button
-              key={mode.label}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setGoing(mode.going)}
-              className={`rounded-full border-4 px-4 py-1 font-jua text-sm transition-transform hover:scale-105 active:scale-95 ${
-                selected
-                  ? `border-gray-800 ${mode.on}`
-                  : "border-gray-300 bg-white text-gray-500"
-              }`}
-            >
-              {mode.label} <span aria-hidden>{mode.emoji}</span>
-            </button>
-          );
-        })}
-      </div>
       <div data-place-buttons className="flex flex-wrap items-start gap-3">
         {places.map((place) => (
           <PlaceButton key={place.id} place={place} onSelect={askToGo} />
@@ -141,14 +108,11 @@ export default function PlaceSelector({
 
       {pending && (
         <ConfirmDialog
-          message={
-            going
-              ? `${withDirectionParticle(pending.placeName)} 가는 중이에요?`
-              : `${withDirectionParticle(pending.placeName)} 가시겠습니까?`
-          }
-          confirmLabel={going ? "네, 가는 중!" : "네, 갈래요!"}
-          onConfirm={confirm}
+          message={`${withDirectionParticle(pending.placeName)} 가시겠습니까?`}
+          confirmLabel="네, 갈래요!"
+          onConfirm={() => confirm(false)}
           onCancel={closeDialog}
+          extra={{ label: "가는 중이에요 🚶", onClick: () => confirm(true) }}
         />
       )}
     </div>

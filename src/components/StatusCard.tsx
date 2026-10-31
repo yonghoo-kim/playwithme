@@ -16,6 +16,8 @@ interface StatusCardProps {
   hideName?: boolean;
   /** Compact only: no border/background, to sit inside another card. */
   bare?: boolean;
+  /** Small control shown just left of the time badge (e.g. a 1:1 chat chip). */
+  action?: React.ReactNode;
 }
 
 /**
@@ -63,6 +65,7 @@ export default function StatusCard({
   compact = false,
   hideName = false,
   bare = false,
+  action,
 }: StatusCardProps) {
   const goingText = going ? `${goingLabel(placeName)} 🚶` : null;
 
@@ -108,6 +111,7 @@ export default function StatusCard({
             </>
           )}
         </p>
+        {action}
         {(placeName || going) && updatedAt && (
           <TimeBadge updatedAt={updatedAt} />
         )}
@@ -131,6 +135,7 @@ export default function StatusCard({
             {goingText ?? "집에 있어요 🏠"}
           </p>
         </div>
+        {action}
         {going && updatedAt && <TimeBadge updatedAt={updatedAt} />}
       </div>
     );
@@ -163,6 +168,7 @@ export default function StatusCard({
         </p>
       </div>
 
+      {action}
       {updatedAt && <TimeBadge updatedAt={updatedAt} />}
     </div>
   );
