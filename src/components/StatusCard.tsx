@@ -1,11 +1,15 @@
 import { Home } from "lucide-react";
 import { getPlaceVisual } from "@/lib/icons";
+import { goingLabel } from "@/lib/status";
 
 interface StatusCardProps {
   childName: string;
   placeName: string | null;
   iconName: string | null;
   updatedAt: string | null;
+  /** On the way to the place (or home when `placeName` is null): shows
+   * "놀이터로 가는 중 🚶" instead of being there. */
+  going?: boolean;
   /** One-line variant (a group page's "우리 아이" row). */
   compact?: boolean;
   /** Compact only: leave the name out (it is already on screen). */
@@ -46,16 +50,22 @@ function TimeBadge({ updatedAt }: { updatedAt: string }) {
   );
 }
 
-/** Read-only display of one child's current place (or "집에 있어요"). */
+/**
+ * Read-only display of one child's current place (or "집에 있어요"), or —
+ * with `going` — where the child is headed ("놀이터로 가는 중 🚶").
+ */
 export default function StatusCard({
   childName,
   placeName,
   iconName,
   updatedAt,
+  going = false,
   compact = false,
   hideName = false,
   bare = false,
 }: StatusCardProps) {
+  const goingText = going ? `${goingLabel(placeName)} 🚶` : null;
+
   if (compact) {
     const visual = placeName ? getPlaceVisual(iconName ?? "") : null;
     return (
@@ -66,7 +76,7 @@ export default function StatusCard({
       >
         <span
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-            visual ? "bg-green-200" : "bg-gray-100"
+            going ? "bg-sky-200" : visual ? "bg-green-200" : "bg-gray-100"
           }`}
         >
           {!visual ? (
@@ -82,18 +92,25 @@ export default function StatusCard({
         <p className="min-w-0 flex-1 truncate text-sm">
           {hideName ? (
             <span className="font-jua text-lg text-blue-900">
-              {placeName ? `${placeName}에 있어요` : "집에 있어요 🏠"}
+              {goingText ??
+                (placeName ? `${placeName}에 있어요` : "집에 있어요 🏠")}
             </span>
           ) : (
             <>
               <span className="font-jua text-base text-blue-900">{childName}</span>{" "}
               <span className="font-bold text-pink-700">
-                {placeName ? `· ${placeName}` : "· 집에 있어요 🏠"}
+                {goingText
+                  ? `· ${goingText}`
+                  : placeName
+                    ? `· ${placeName}`
+                    : "· 집에 있어요 🏠"}
               </span>
             </>
           )}
         </p>
-        {placeName && updatedAt && <TimeBadge updatedAt={updatedAt} />}
+        {(placeName || going) && updatedAt && (
+          <TimeBadge updatedAt={updatedAt} />
+        )}
       </div>
     );
   }
@@ -101,13 +118,20 @@ export default function StatusCard({
   if (!placeName) {
     return (
       <div className="flex items-center gap-3 rounded-2xl border-2 border-gray-300 bg-white/60 p-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100">
+        <span
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+            going ? "bg-sky-200" : "bg-gray-100"
+          }`}
+        >
           <Home size={22} strokeWidth={2.5} className="text-gray-500" />
         </span>
-        <div>
+        <div className="flex-1">
           <p className="font-jua text-lg text-gray-700">{childName}</p>
-          <p className="text-sm text-gray-500">집에 있어요 🏠</p>
+          <p className="text-sm text-gray-500">
+            {goingText ?? "집에 있어요 🏠"}
+          </p>
         </div>
+        {going && updatedAt && <TimeBadge updatedAt={updatedAt} />}
       </div>
     );
   }
@@ -116,7 +140,11 @@ export default function StatusCard({
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]">
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
+      <span
+        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-md ${
+          going ? "bg-sky-200 shadow-sky-200" : "bg-green-200 shadow-green-200"
+        }`}
+      >
         {visual.type === "emoji" ? (
           <span aria-hidden className="text-[26px] leading-none">
             {visual.emoji}
@@ -130,7 +158,9 @@ export default function StatusCard({
         <p className="font-jua text-lg text-blue-900">
           {childName} <span aria-hidden>🏃‍♂️</span>
         </p>
-        <p className="text-sm font-bold text-pink-700">{placeName}</p>
+        <p className="text-sm font-bold text-pink-700">
+          {goingText ?? placeName}
+        </p>
       </div>
 
       {updatedAt && <TimeBadge updatedAt={updatedAt} />}

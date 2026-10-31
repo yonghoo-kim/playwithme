@@ -63,39 +63,3 @@ export async function locationPermission(): Promise<PermissionState | "unknown">
     return "unknown";
   }
 }
-
-/** Straight-line distance between two points (haversine), in meters. */
-export function distanceMeters(a: Coords, b: Coords): number {
-  const R = 6_371_000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
-}
-
-const HOME_KEY = "playwithme_home_coords";
-
-/** "우리 집" spot saved on this phone only (never sent to the server). */
-export function readHome(): Coords | null {
-  try {
-    const raw = window.localStorage.getItem(HOME_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Coords) : null;
-    return parsed && Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon)
-      ? parsed
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveHome(coords: Coords | null): void {
-  try {
-    if (coords) window.localStorage.setItem(HOME_KEY, JSON.stringify(coords));
-    else window.localStorage.removeItem(HOME_KEY);
-  } catch {
-    // Storage blocked: the home suggestion just won't appear.
-  }
-}

@@ -10,6 +10,13 @@ describe('withDirectionParticle', () => {
   it('uses 으로 after a final consonant', () => {
     expect(withDirectionParticle('병원')).toBe('병원으로')
     expect(withDirectionParticle('집')).toBe('집으로')
+    expect(withDirectionParticle('학원')).toBe('학원으로')
+    expect(withDirectionParticle('공원')).toBe('공원으로')
+  })
+
+  it('uses 로 for 놀이터 and an empty string', () => {
+    expect(withDirectionParticle('놀이터')).toBe('놀이터로')
+    expect(withDirectionParticle('')).toBe('로')
   })
 
   it('uses 로 after a final ㄹ', () => {

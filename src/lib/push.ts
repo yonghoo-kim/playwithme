@@ -1,3 +1,5 @@
+import { withDirectionParticle } from "./korean";
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -19,17 +21,21 @@ function withSubjectParticle(name: string): string {
 
 // Title = the group(s) the recipient shares with the child (the phone already
 // shows the app name above it); the app name only when there is none.
+// `going` = on the way ("놀이터로 가는 중이에요"), not there yet.
 export function formatPushPayload(
   childName: string,
   placeName: string | null,
-  groupNames: string[]
+  groupNames: string[],
+  going = false
 ): PushPayload {
   const subject = withSubjectParticle(childName);
   return {
     title: groupNames.length > 0 ? groupNames.join(" · ") : "나랑 놀자",
-    body: placeName
-      ? `${subject} ${placeName}에 나왔어요! 같이 놀아요! 🎈`
-      : `${subject} 집에 갔어요 🏠`,
+    body: going
+      ? `${subject} ${withDirectionParticle(placeName ?? "집")} 가는 중이에요 🚶`
+      : placeName
+        ? `${subject} ${placeName}에 나왔어요! 같이 놀아요! 🎈`
+        : `${subject} 집에 갔어요 🏠`,
   };
 }
 

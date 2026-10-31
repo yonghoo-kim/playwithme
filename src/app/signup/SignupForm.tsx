@@ -144,12 +144,9 @@ export default function SignupForm({
       onSubmit={handleSubmit}
       className="w-full rounded-2xl border-4 border-gray-800 bg-white p-6 shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
     >
-      <h1 className="mb-1 text-center text-3xl font-jua text-pink-700">
+      <h1 className="mb-6 text-center text-3xl font-jua text-pink-700">
         나랑 놀자 🎈
       </h1>
-      <p className="mb-6 text-center text-sm text-blue-900">
-        지훈이와 함께 시작해요! 🎈
-      </p>
 
       <label className="mb-3 flex items-center gap-3 rounded-2xl border-2 border-gray-800 bg-yellow-50 px-3 py-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-200 shadow-md shadow-yellow-200">

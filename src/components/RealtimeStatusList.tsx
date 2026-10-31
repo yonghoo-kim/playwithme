@@ -18,11 +18,14 @@ export interface ChildStatusView {
   childName: string;
   placeId: string | null;
   updatedAt: string | null;
+  /** On the way to `placeId` (or home when null) — "가는 중". */
+  going?: boolean;
 }
 
 interface LiveStatus {
   placeId: string | null;
   updatedAt: string | null;
+  going: boolean;
 }
 
 type StatusMap = Record<string, LiveStatus>;
@@ -33,6 +36,7 @@ function toStatusMap(children: ChildStatusView[]): StatusMap {
     map[child.childId] = {
       placeId: child.placeId,
       updatedAt: child.updatedAt,
+      going: child.going === true,
     };
   }
   return map;
@@ -112,7 +116,12 @@ export function useLiveStatuses(children: ChildStatusView[], places: Place[]) {
   }, []);
 
   const applyStatus = useCallback(
-    (childId: string, placeId: string | null, updatedAt: string | null) => {
+    (
+      childId: string,
+      placeId: string | null,
+      updatedAt: string | null,
+      going = false
+    ) => {
       if (!knownChildIdsRef.current.has(childId)) {
         return;
       }
@@ -121,7 +130,7 @@ export function useLiveStatuses(children: ChildStatusView[], places: Place[]) {
       }
       setStatuses((current) => ({
         ...current,
-        [childId]: { placeId, updatedAt },
+        [childId]: { placeId, updatedAt, going },
       }));
       flash(childId);
     },
@@ -166,7 +175,13 @@ export function useLiveStatuses(children: ChildStatusView[], places: Place[]) {
       if (!row.child_id) {
         return;
       }
-      applyStatus(row.child_id, row.place_id ?? null, row.updated_at ?? null);
+      // `going` is missing before migration 0012 — treat it as arrived.
+      applyStatus(
+        row.child_id,
+        row.place_id ?? null,
+        row.updated_at ?? null,
+        row.going === true
+      );
     };
 
     // Realtime checks RLS as the subscriber, so the socket must carry the
@@ -223,14 +238,16 @@ export function useLiveStatuses(children: ChildStatusView[], places: Place[]) {
   /** Current status of a child, resolved to its place (if known). */
   const resolve = useCallback(
     (child: ChildStatusView) => {
-      const status = statuses[child.childId] ?? {
+      const status: LiveStatus = statuses[child.childId] ?? {
         placeId: child.placeId,
         updatedAt: child.updatedAt,
+        going: child.going === true,
       };
       const place = status.placeId ? placesById.get(status.placeId) : undefined;
       return {
         placeId: status.placeId,
         updatedAt: status.updatedAt,
+        going: status.going,
         // A place we haven't fetched yet (refresh in flight) — show a
         // placeholder rather than flipping the card to "집에 있어요".
         placeName: place?.name ?? (status.placeId ? "불러오는 중…" : null),

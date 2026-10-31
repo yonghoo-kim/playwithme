@@ -54,19 +54,61 @@ messaging.onBackgroundMessage((payload) => {
   });
 });
 
+// Opening a notification. This worker's scope is the FCM push scope, so it
+// never *controls* the app's pages (next-pwa's root sw.js does) — and
+// WindowClient.navigate() rejects for a window the worker doesn't control.
+// The old handler called navigate() anyway: it silently failed and only
+// focus() ran, so an already-open app came to the front showing whatever it
+// had before (e.g. a chat with messages missed while in the background).
+// Instead, focus the window and ask the page to route itself
+// (src/components/PushOpenListener.tsx answers on the MessageChannel). If no
+// page answers, open the URL in a new window.
+const OPEN_URL_MESSAGE = "narangnol:open-url";
+const OPEN_ACK_TIMEOUT_MS = 1500;
+
+function askPageToOpen(client, url) {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(false), OPEN_ACK_TIMEOUT_MS);
+    channel.port1.onmessage = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    try {
+      client.postMessage({ type: OPEN_URL_MESSAGE, url }, [channel.port2]);
+    } catch (err) {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  });
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/dashboard";
+  const target = new URL(
+    event.notification.data?.url || "/dashboard",
+    self.location.origin
+  ).href;
+
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windows) => {
-        const existing = windows.find((w) => "focus" in w);
-        if (existing) {
-          existing.navigate(url);
-          return existing.focus();
-        }
-        return clients.openWindow(url);
-      })
+    (async () => {
+      const windows = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Prefer a window already on that screen, then any app window.
+      const existing =
+        windows.find((w) => w.url === target && "focus" in w) ||
+        windows.find((w) => "focus" in w);
+      if (!existing) {
+        await clients.openWindow(target);
+        return;
+      }
+      const focused = (await existing.focus().catch(() => null)) || existing;
+      const handled = await askPageToOpen(focused, target);
+      if (!handled) {
+        await clients.openWindow(target).catch(() => undefined);
+      }
+    })()
   );
 });

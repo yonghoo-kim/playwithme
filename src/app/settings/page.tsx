@@ -1,14 +1,12 @@
 import AppHeader from "@/components/AppHeader";
 import { redirect } from "next/navigation";
-import { Baby, Bell, MapPin, UserPlus, Users } from "lucide-react";
+import { Baby, Bell, UserPlus, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getGuardedChildIds } from "@/lib/childAccess";
 import NotificationSettingsToggle from "@/components/NotificationSettingsToggle";
 import MyChildCard from "./MyChildCard";
 import AddChildForm from "./AddChildForm";
 import MyGroups, { type SettingsGroup } from "./MyGroups";
-import HomeSpot from "./HomeSpot";
-import PlaceAlerts, { type PlaceAlertItem } from "./PlaceAlerts";
 
 function SectionHeading({
   icon,
@@ -116,40 +114,6 @@ export default async function SettingsPage() {
     ])
   );
 
-  // My family's places (made by any guardian of my children). `*` so this
-  // still renders before migration 0010 adds places.notify.
-  const { data: familyRows } =
-    childIds.length > 0
-      ? await supabase
-          .from("child_guardians")
-          .select("user_id")
-          .in("child_id", childIds)
-      : { data: [] };
-  const familyIds = Array.from(
-    new Set((familyRows ?? []).map((row) => row.user_id as string))
-  );
-  const { data: placeRows } =
-    familyIds.length > 0
-      ? await supabase
-          .from("places")
-          .select("*")
-          .in("created_by", familyIds)
-          .order("created_at", { ascending: true })
-      : { data: [] };
-  const placeAlerts: PlaceAlertItem[] = (
-    (placeRows ?? []) as {
-      id: string;
-      name: string;
-      icon_name: string;
-      notify?: boolean;
-    }[]
-  ).map((place) => ({
-    id: place.id,
-    name: place.name,
-    iconName: place.icon_name,
-    notify: place.notify !== false,
-  }));
-
   const myChildren = ((childRows ?? []) as { id: string; name: string }[]).map(
     (child) => ({
       id: child.id,
@@ -222,19 +186,6 @@ export default async function SettingsPage() {
             title="아이 추가"
           />
           <AddChildForm />
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <SectionHeading
-            icon={
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-200 shadow-md shadow-orange-200">
-                <MapPin size={16} strokeWidth={2.5} className="text-orange-800" />
-              </span>
-            }
-            title="장소"
-          />
-          <HomeSpot />
-          <PlaceAlerts places={placeAlerts} />
         </section>
 
         <section className="flex flex-col gap-3">

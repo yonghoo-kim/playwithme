@@ -134,8 +134,15 @@ export function showForegroundPushes(): () => void {
   try {
     return onMessage(getFirebaseMessaging(), async (payload) => {
       const data = payload.data ?? {};
-      // Already looking at it (e.g. this group's chat): no popup.
-      if (data.url && data.url === window.location.pathname) return;
+      // Already looking at it (e.g. this chat): no popup. Paths only — a
+      // 1:1 chat push carries `?child=`, the open screen may not.
+      if (
+        data.url &&
+        new URL(data.url, window.location.origin).pathname ===
+          window.location.pathname
+      ) {
+        return;
+      }
       const registration =
         (await navigator.serviceWorker.getRegistration(PUSH_SCOPE)) ??
         (await navigator.serviceWorker.ready);

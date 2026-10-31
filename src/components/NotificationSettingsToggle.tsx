@@ -54,7 +54,7 @@ export default function NotificationSettingsToggle() {
       {state === "enabled" && (
         <>
           <p className="flex-1 text-sm font-bold text-blue-900">
-            놀이터 알림을 받고 있어요!
+            나랑놀자 알림을 받고 있어요!
           </p>
           <span className="shrink-0 rounded-full border-4 border-gray-800 bg-green-200 px-3 py-1 text-sm font-bold text-green-900">
             알림 켜짐 ✅
@@ -65,7 +65,7 @@ export default function NotificationSettingsToggle() {
       {state === "disabled" && (
         <>
           <p className="flex-1 text-sm font-bold text-blue-900">
-            놀이터 알림을 받으려면 홈 화면에 추가하고 알림을 켜주세요! ✨
+            나랑놀자 알림을 받으려면 홈 화면에 추가하고 알림을 켜주세요! ✨
           </p>
           <button
             type="button"

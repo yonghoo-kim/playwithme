@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Eye, MessageCircle, Users } from "lucide-react";
+import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import StatusCard from "@/components/StatusCard";
+import { directChatTitle } from "@/lib/chat";
 import {
   FlashFrame,
   useLiveStatuses,
@@ -156,13 +157,11 @@ export default function GroupAccordion({
                     <span className="font-jua text-lg text-pink-700">
                       친구들
                     </span>
-                    <span className="flex items-center gap-1 rounded-full border-2 border-gray-300 bg-white px-2 py-0.5 text-[11px] font-bold text-gray-500">
-                      <Eye size={12} strokeWidth={3} aria-hidden />
-                      보기 전용
-                    </span>
                     <span className="ml-auto flex items-center gap-2">
+                      {/* The whole group's chat; each friend card has its own 1:1 chat. */}
                       <Link
                         href={`/chat/${group.id}`}
+                        aria-label={`${group.name} 그룹 채팅`}
                         className="flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-3 py-1 font-jua text-sm text-yellow-900 transition-transform hover:scale-105 active:scale-95"
                       >
                         <MessageCircle size={14} strokeWidth={2.5} aria-hidden />
@@ -187,12 +186,25 @@ export default function GroupAccordion({
                           key={friend.childId}
                           active={view.isFlashing}
                         >
-                          <StatusCard
-                            childName={friend.childName}
-                            placeName={view.placeName}
-                            iconName={view.iconName}
-                            updatedAt={view.updatedAt}
-                          />
+                          <div className="relative">
+                            <StatusCard
+                              childName={friend.childName}
+                              placeName={view.placeName}
+                              iconName={view.iconName}
+                              updatedAt={view.updatedAt}
+                              going={view.going}
+                            />
+                            {/* 1:1 chat with this friend's family, as a
+                                sticker on the card's top edge. */}
+                            <Link
+                              href={`/chat/direct/${encodeURIComponent(friend.childId)}`}
+                              aria-label={directChatTitle(friend.childName)}
+                              className="absolute -top-3 right-3 z-10 flex items-center gap-1 rounded-full border-2 border-gray-800 bg-pink-100 px-2 py-0.5 font-jua text-xs text-pink-800 transition-transform hover:scale-105 active:scale-95"
+                            >
+                              <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
+                              채팅
+                            </Link>
+                          </div>
                         </FlashFrame>
                       );
                     })

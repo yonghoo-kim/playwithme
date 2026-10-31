@@ -609,6 +609,90 @@ body {
   }
 }
 
+/* Landing-only playground kids (src/components/PlaygroundKids.tsx): small
+   kids on the front hill, above .pg-bg and below the page content. Each
+   piece is centred on a % of the width and lifted to the front hill's
+   surface there (as a fraction of --pg-hill-h, read off the hill path), so
+   they stand on the grass at any width. */
+.pg-kids {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pg-kids > * {
+  position: absolute;
+}
+
+.pg-kids svg {
+  overflow: visible;
+}
+
+/* Same box as .pg-slide, so the kid rides the background's slide. */
+.pg-kid-slide {
+  left: 8%;
+  width: 5rem;
+  height: auto;
+  bottom: calc(var(--pg-hill-h) * 0.26);
+}
+
+.pg-kid-swing {
+  left: 42%;
+  transform: translateX(-50%);
+  bottom: calc(var(--pg-hill-h) * 0.347 - 5px);
+}
+
+.pg-kid-seesaw {
+  left: 76%;
+  transform: translateX(-50%);
+  bottom: calc(var(--pg-hill-h) * 0.18 - 3px);
+}
+
+/* Front row: lower on the grass, closer to the viewer. */
+.pg-kid-sand {
+  left: 22%;
+  transform: translateX(-50%);
+  bottom: calc(var(--pg-hill-h) * 0.04);
+}
+
+.pg-kid-jump {
+  left: 58%;
+  transform: translateX(-50%);
+  bottom: calc(var(--pg-hill-h) * 0.1);
+}
+
+.pg-kid-run {
+  left: 0;
+  bottom: 2px;
+  line-height: 0;
+  animation: pg-kid-run 12s linear infinite;
+}
+
+@keyframes pg-kid-run {
+  from {
+    transform: translateX(-80px);
+  }
+  to {
+    transform: translateX(calc(100vw + 8px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-kid-run {
+    animation: none;
+    transform: translateX(34vw);
+  }
+}
+
+/* Short landscape screens: no room under the buttons, keep the plain bg. */
+@media (max-height: 520px) {
+  .pg-kids {
+    display: none;
+  }
+}
+
 /* First screen title: a happy little bounce. */
 @keyframes title-bounce {
   50% {

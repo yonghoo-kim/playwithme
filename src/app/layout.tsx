@@ -3,6 +3,7 @@ import { Jua } from "next/font/google";
 import "./globals.css";
 import NavigationProgress from "./NavigationProgress";
 import PlaygroundBackground from "@/components/PlaygroundBackground";
+import PushOpenListener from "@/components/PushOpenListener";
 import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
 import { WEATHER_CACHE_SCRIPT } from "@/lib/weatherCache";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className={`${jua.variable} font-jua bg-sky-100 antialiased`}>
         <PlaygroundBackground />
         <NavigationProgress />
+        <PushOpenListener />
         {children}
       </body>
     </html>

@@ -16,6 +16,28 @@ describe('formatPushPayload', () => {
     })
   })
 
+  it('announces 가는 중 with 로/으로 picked by the place name', () => {
+    expect(formatPushPayload('고이현', '놀이터', ['가재울어린이집'], true).body).toBe(
+      '고이현이 놀이터로 가는 중이에요 🚶'
+    )
+    expect(formatPushPayload('김하나', '학원', [], true).body).toBe(
+      '김하나가 학원으로 가는 중이에요 🚶'
+    )
+  })
+
+  it('announces going home (no place) as 집으로 가는 중', () => {
+    expect(formatPushPayload('김하나', null, ['말띠모임'], true)).toEqual({
+      title: '말띠모임',
+      body: '김하나가 집으로 가는 중이에요 🚶',
+    })
+  })
+
+  it('keeps the arrival wording when going is false', () => {
+    expect(formatPushPayload('고이현', '놀이터', [], false).body).toBe(
+      '고이현이 놀이터에 나왔어요! 같이 놀아요! 🎈'
+    )
+  })
+
   it('joins several shared groups and falls back to the app name with none', () => {
     expect(formatPushPayload('지훈', null, ['어린이집', '아파트']).title).toBe('어린이집 · 아파트')
     expect(formatPushPayload('지훈', null, []).title).toBe('나랑 놀자')

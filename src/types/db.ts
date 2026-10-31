@@ -34,6 +34,9 @@ export interface FcmToken {
 export interface CurrentStatus {
   child_id: string;
   place_id: string | null;
+  /** On the way to `place_id` (or home when null) rather than there yet.
+   * Absent on rows read before migration 0012 — treat missing as false. */
+  going: boolean;
   updated_at: string;
 }
 

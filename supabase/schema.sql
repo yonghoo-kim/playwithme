@@ -43,6 +43,8 @@ create table public.current_statuses (
   user_id uuid primary key references public.users(id) on delete cascade,
   group_id uuid not null references public.groups(id) on delete cascade,
   place_id uuid references public.places(id) on delete set null,
+  -- true = on the way to place_id (or home when null); see migration 0012.
+  going boolean not null default false,
   updated_at timestamptz not null default now()
 );
 

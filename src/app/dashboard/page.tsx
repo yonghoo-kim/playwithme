@@ -87,9 +87,11 @@ export default async function DashboardPage({
   const [places, { data: statusRow }, { data: membershipRows }] =
     await Promise.all([
       familyPlaces(supabase, activeChild.id),
+      // `*` (not a column list) so this still works before migration 0012
+      // adds `going`.
       supabase
         .from("current_statuses")
-        .select("child_id, place_id, updated_at")
+        .select("*")
         .eq("child_id", activeChild.id)
         .maybeSingle(),
       supabase
@@ -149,7 +151,7 @@ export default async function DashboardPage({
           supabase.from("children").select("id, name").in("id", friendIds),
           supabase
             .from("current_statuses")
-            .select("child_id, place_id, updated_at")
+            .select("*")
             .in("child_id", friendIds),
         ])
       : [{ data: [] }, { data: [] }];
@@ -186,6 +188,7 @@ export default async function DashboardPage({
       childName: child.name,
       placeId: friendStatus?.place_id ?? null,
       updatedAt: friendStatus?.updated_at ?? null,
+      going: friendStatus?.going === true,
     };
   });
 
@@ -250,6 +253,7 @@ export default async function DashboardPage({
               childName: activeChild.name,
               placeId: status?.place_id ?? null,
               updatedAt: status?.updated_at ?? null,
+              going: status?.going === true,
             }}
             places={places}
           />

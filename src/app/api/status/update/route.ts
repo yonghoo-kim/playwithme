@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
-import { buildStatusUpsertRow } from "@/lib/status";
+import { buildStatusUpsertRow, isRepeatStatus } from "@/lib/status";
 import { formatPushPayload, sendGroupPush } from "@/lib/push";
 import { assertGuardian, statusRecipientGroupIds } from "@/lib/childAccess";
+
+/** PostgREST/Postgres "no such column" for `going` (migration 0012 not run). */
+function isMissingGoingColumn(error: {
+  code?: string;
+  message?: string;
+}): boolean {
+  return (
+    (error.code === "PGRST204" || error.code === "42703") &&
+    (error.message ?? "").includes("going")
+  );
+}
 
 /**
  * Sets a child's one status (shared with every group the child is in) and
  * notifies everyone connected to the child.
- * Body: `{ childId: string; placeId: string | null; deviceToken?: string }`.
+ * Body: `{ childId: string; placeId: string | null; going?: boolean;
+ * deviceToken?: string }` — `going: true` = on the way there ("가는 중"),
+ * omitted/false = arrived.
  */
 export async function POST(request: NextRequest) {
-  let body: { childId?: unknown; placeId?: unknown; deviceToken?: unknown };
+  let body: {
+    childId?: unknown;
+    placeId?: unknown;
+    going?: unknown;
+    deviceToken?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -20,12 +38,14 @@ export async function POST(request: NextRequest) {
 
   const childId = typeof body.childId === "string" ? body.childId : "";
   const placeId = body.placeId;
+  const going = body.going === true;
   const deviceToken =
     typeof body.deviceToken === "string" ? body.deviceToken : null;
 
   if (
     !childId ||
-    !(placeId === null || (typeof placeId === "string" && placeId !== ""))
+    !(placeId === null || (typeof placeId === "string" && placeId !== "")) ||
+    !(body.going === undefined || typeof body.going === "boolean")
   ) {
     return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
   }
@@ -87,19 +107,38 @@ export async function POST(request: NextRequest) {
     placeNotifies = place.notify !== false;
   }
 
-  // Tapping the place the child is already at (or 집으로 while already home
-  // — no status row also means home) changes nothing worth a push.
+  // Tapping the place the child is already at, the same way (or 집으로 while
+  // already home — no status row also means home and arrived), changes
+  // nothing worth a push. Flipping only 가는 중 ↔ 도착 is a real change.
+  // `*` so this still works before migration 0012 (no `going` column).
   const { data: previous } = await supabase
     .from("current_statuses")
-    .select("place_id")
+    .select("*")
     .eq("child_id", childId)
     .maybeSingle();
-  const unchanged = ((previous?.place_id as string | null) ?? null) === placeId;
+  const unchanged = isRepeatStatus(
+    previous as { place_id?: string | null; going?: boolean | null } | null,
+    placeId,
+    going
+  );
 
-  const row = buildStatusUpsertRow(childId, placeId);
-  const { error: upsertError } = await supabase
+  const row = buildStatusUpsertRow(childId, placeId, going);
+  let { error: upsertError } = await supabase
     .from("current_statuses")
     .upsert(row, { onConflict: "child_id" });
+
+  // Before migration 0012 the `going` column doesn't exist yet: an arrival
+  // still works without it; only "가는 중" needs the migration.
+  if (upsertError && !going && isMissingGoingColumn(upsertError)) {
+    const legacyRow = {
+      child_id: row.child_id,
+      place_id: row.place_id,
+      updated_at: row.updated_at,
+    };
+    ({ error: upsertError } = await supabase
+      .from("current_statuses")
+      .upsert(legacyRow, { onConflict: "child_id" }));
+  }
 
   if (upsertError) {
     console.error("Failed to upsert status:", upsertError.message);
@@ -198,7 +237,7 @@ export async function POST(request: NextRequest) {
         const result = await sendGroupPush(
           getAdminMessaging(),
           tokens,
-          formatPushPayload(child.name ?? "", placeName, names),
+          formatPushPayload(child.name ?? "", placeName, names, going),
           { tag: "child-" + childId }
         );
         failedTokens.push(...result.failedTokens);
