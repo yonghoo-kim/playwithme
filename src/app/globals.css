@@ -58,10 +58,13 @@ body {
 }
 
 /* Running kids loader (src/components/RunningKidsLoader.tsx): everyone
-   crosses left to right on the same 2.4s loop, offset by negative delays so
-   the ball leads and the kids trail it; legs and arms swing, bodies bob. */
+   crosses left to right on the same 2s loop, offset by negative delays so
+   the ball leads and the kids trail it. 우다다다: each kid has its own quick
+   stride (--rk-step; --rk-bob is half of it, one bob per stride) and a slow
+   jostle in the pack (--rk-surge); dust puffs and speed streaks trail them.
+   Transforms and opacity only. */
 .rk-run {
-  animation: rk-run 2.4s linear infinite;
+  animation: rk-run 2s linear infinite;
 }
 
 @keyframes rk-run {
@@ -73,12 +76,25 @@ body {
   }
 }
 
+.rk-surge {
+  animation: rk-surge var(--rk-surge, 1.4s) ease-in-out infinite alternate;
+}
+
+@keyframes rk-surge {
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(4px);
+  }
+}
+
 .rk-ball {
   animation: rk-bounce 0.6s infinite;
 }
 
 .rk-ground {
-  animation: rk-ground 0.4s linear infinite;
+  animation: rk-ground 0.225s linear infinite;
 }
 
 @keyframes rk-ground {
@@ -88,7 +104,7 @@ body {
 }
 
 .rk-cloud {
-  animation: rk-cloud 7s linear infinite;
+  animation: rk-cloud 5s linear infinite;
 }
 
 @keyframes rk-cloud {
@@ -113,12 +129,12 @@ body {
 }
 
 .rk-bob {
-  animation: rk-bob 0.14s ease-in-out infinite alternate;
+  animation: rk-bob var(--rk-bob, 0.07s) ease-in-out infinite alternate;
 }
 
 @keyframes rk-bob {
   to {
-    transform: translateY(-3px);
+    transform: translateY(-3.5px);
   }
 }
 
@@ -126,7 +142,7 @@ body {
 .rk-arm {
   transform-box: fill-box;
   transform-origin: 50% 0;
-  animation: rk-swing 0.28s ease-in-out infinite alternate;
+  animation: rk-swing var(--rk-step, 0.14s) ease-in-out infinite alternate;
 }
 
 .rk-alt {
@@ -135,27 +151,116 @@ body {
 
 @keyframes rk-swing {
   from {
-    transform: rotate(-38deg);
+    transform: rotate(-48deg);
   }
   to {
-    transform: rotate(38deg);
+    transform: rotate(48deg);
+  }
+}
+
+/* Dust puff: born small at the heel, drifts back and up, grows, fades. */
+.rk-dust {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: rk-dust 0.75s ease-out infinite;
+}
+
+.rk-dust-low {
+  animation-name: rk-dust-low;
+}
+
+@keyframes rk-dust {
+  0% {
+    transform: translate(0, 0) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-30px, -12px) scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes rk-dust-low {
+  0% {
+    transform: translate(0, 0) scale(0.35);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  55% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(-24px, -5px) scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Speed streaks behind the body flicker past. */
+.rk-zip {
+  opacity: 0;
+  animation: rk-zip 0.34s linear infinite;
+}
+
+@keyframes rk-zip {
+  0% {
+    transform: translateX(4px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(-8px);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rk-run,
+  .rk-surge,
   .rk-ball,
   .rk-ground,
   .rk-cloud,
   .rk-bob,
   .rk-leg,
-  .rk-arm {
+  .rk-arm,
+  .rk-dust,
+  .rk-zip {
     animation: none;
   }
 
-  /* Still picture: kids spread out behind the ball, clouds in the sky. */
+  /* Still picture: kids spread out behind the ball mid-stride, a small
+     cloud of dust at their heels, clouds in the sky. */
   .rk-run {
     transform: translateX(var(--rk-x, 0px));
+  }
+
+  .rk-leg,
+  .rk-arm {
+    transform: rotate(-30deg);
+  }
+
+  .rk-alt {
+    transform: rotate(30deg);
+  }
+
+  .rk-dust {
+    transform: translate(var(--rk-still-x, 0px), var(--rk-still-y, 0px))
+      scale(var(--rk-still-s, 1));
+    opacity: var(--rk-still-o, 0);
+  }
+
+  .rk-zip {
+    opacity: 0.7;
   }
 
   .rk-cloud {
