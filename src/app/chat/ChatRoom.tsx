@@ -27,6 +27,7 @@ import {
   type ChatMessage,
   type ChatMessageRow,
 } from "@/lib/chat";
+import { directConversationKey, groupConversationKey } from "@/lib/unread";
 
 export type { ChatMessage };
 
@@ -66,6 +67,67 @@ const dayFormat = new Intl.DateTimeFormat("ko-KR", {
 /** Retry delay after the live channel drops (only while on screen). */
 const RECONNECT_MS = 3000;
 
+/** At most one "read up to now" write per this long. */
+const MARK_READ_MS = 1500;
+
+/** Errors meaning chat_reads doesn't exist yet (migration 0014 not applied). */
+const MISSING_TABLE_CODES = new Set(["42P01", "PGRST205", "PGRST204"]);
+
+/**
+ * Records that I have read `conversation` up to now (chat_reads; the server
+ * stamps the time). Returns a debounced trigger: the first call writes right
+ * away, later ones within MARK_READ_MS fold into one trailing write, and a
+ * pending write is flushed when the screen goes away so the dashboard's
+ * badge is already cleared when it loads. Failures are ignored — unread
+ * badges are a nicety, never a reason to break the chat.
+ */
+function useMarkRead(conversation: string, myUserId: string) {
+  const triggerRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    let disabled = false;
+    let lastSent = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function write() {
+      timer = undefined;
+      lastSent = Date.now();
+      if (disabled) return;
+      try {
+        const { error } = await supabase.from("chat_reads").upsert(
+          {
+            user_id: myUserId,
+            conversation,
+            last_read_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,conversation" }
+        );
+        if (error && MISSING_TABLE_CODES.has(error.code)) disabled = true;
+      } catch {
+        // Offline: the next trigger (return to the app) tries again.
+      }
+    }
+
+    triggerRef.current = () => {
+      if (disabled || timer) return;
+      const wait = lastSent + MARK_READ_MS - Date.now();
+      if (wait <= 0) void write();
+      else timer = setTimeout(() => void write(), wait);
+    };
+
+    return () => {
+      triggerRef.current = () => {};
+      if (timer) {
+        clearTimeout(timer);
+        void write();
+      }
+    };
+  }, [conversation, myUserId]);
+
+  return useCallback(() => triggerRef.current(), []);
+}
+
 /**
  * Chat screen for a group or a 1:1 conversation: messages (mine on the
  * right), a date line when the day changes, and a typed-only input. Sending goes through the API (which also notifies the others).
@@ -100,6 +162,30 @@ export default function ChatRoom({
     conversation.kind === "group" ? conversation.groupId : conversation.childId;
   const friendChildId =
     conversation.kind === "direct" ? conversation.friendChildId : "";
+
+  const conversationKey =
+    kind === "group"
+      ? groupConversationKey(primaryId)
+      : directConversationKey(primaryId, friendChildId);
+  const markRead = useMarkRead(conversationKey, myUserId);
+
+  // Read on open, whenever messages arrive while I'm looking, and on coming
+  // back to the app (a hidden screen isn't being read).
+  useEffect(() => {
+    if (document.visibilityState === "visible") markRead();
+  }, [messages, markRead]);
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") markRead();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [markRead]);
 
   const api = useMemo(() => {
     if (kind === "group") {

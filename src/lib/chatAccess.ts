@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getGuardedChildIds } from "./childAccess";
+import { filterPushRecipients } from "./pushPrefs";
 import {
   CHAT_PAGE_SIZE,
   directChatCandidates,
@@ -170,15 +171,25 @@ export async function loadFamilyLabels(
   return { labels, names };
 }
 
-/** Distinct FCM tokens of the given users. */
+/**
+ * Distinct FCM tokens of the given users who should get this push now:
+ * users in quiet hours are dropped, and for a group push (`groupId`) so are
+ * users who muted the group. A 1:1 push passes `groupId: null`.
+ */
 export async function loadTokens(
   supabase: SupabaseClient,
-  userIds: string[]
+  userIds: string[],
+  scope: { groupId: string | null; now?: Date }
 ): Promise<string[]> {
   if (userIds.length === 0) return [];
+  const recipients = await filterPushRecipients(supabase, userIds, {
+    groupId: scope.groupId,
+    now: scope.now ?? new Date(),
+  });
+  if (recipients.length === 0) return [];
   const { data } = await supabase
     .from("fcm_tokens")
     .select("token")
-    .in("user_id", userIds);
+    .in("user_id", recipients);
   return Array.from(new Set((data ?? []).map((row) => row.token as string)));
 }

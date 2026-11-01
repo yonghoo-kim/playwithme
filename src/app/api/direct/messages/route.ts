@@ -146,7 +146,12 @@ export async function POST(request: NextRequest) {
     const messaging = getAdminMessaging();
     const failed: string[] = [];
 
-    const friendTokens = await loadTokens(supabase, Array.from(friendFamily));
+    // 1:1 chats belong to no group: only quiet hours apply, never mutes.
+    const now = new Date();
+    const friendTokens = await loadTokens(supabase, Array.from(friendFamily), {
+      groupId: null,
+      now,
+    });
     if (friendTokens.length > 0) {
       const { failedTokens } = await sendGroupPush(
         messaging,
@@ -157,7 +162,10 @@ export async function POST(request: NextRequest) {
       failed.push(...failedTokens);
     }
 
-    const myTokens = await loadTokens(supabase, Array.from(myFamily));
+    const myTokens = await loadTokens(supabase, Array.from(myFamily), {
+      groupId: null,
+      now,
+    });
     if (myTokens.length > 0) {
       const { failedTokens } = await sendGroupPush(
         messaging,

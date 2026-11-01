@@ -89,6 +89,21 @@ describe('toKoreanAuthError', () => {
     expect(toKoreanAuthError('otp_expired')).toContain('만료')
   })
 
+  it('maps password-reset link failures', () => {
+    expect(
+      toKoreanAuthError('PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared.')
+    ).toContain('같은 브라우저')
+    expect(
+      toKoreanAuthError('invalid flow state, no valid flow state found')
+    ).toContain('같은 브라우저')
+    expect(
+      toKoreanAuthError('Error in URL with unspecified error_description')
+    ).toContain('만료')
+    expect(toKoreanAuthError('Auth session missing!')).toContain(
+      '다시 요청'
+    )
+  })
+
   it('never passes unknown English through', () => {
     expect(toKoreanAuthError('Database error saving new user')).toBe(
       GENERIC_ERROR

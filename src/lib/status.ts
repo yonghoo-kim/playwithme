@@ -1,5 +1,6 @@
 import type { CurrentStatus } from "@/types/db";
 import { withDirectionParticle } from "./korean";
+import { startOfKstDay } from "./kstTime";
 
 // One status row per child, shared with every group the child is in — so
 // there is no group in the row. `going` is always written so a later
@@ -56,6 +57,9 @@ export function isHomeStatus(
  * been updated for `STALE_STATUS_MS` or more. An unknown or unparsable
  * `updatedAt` is never stale (nothing to compare against). A "가는 중"
  * status is never stale either — we don't nag while the child is on the way.
+ * Nor is one set before today's 00:00 KST: the daily reset
+ * (/api/cron/reset-statuses) has already sent the child home, so the screen
+ * is just behind — re-posting it ("네, 아직 있어요") would wrongly undo it.
  */
 export function isStatusStale(
   placeId: string | null,
@@ -67,5 +71,6 @@ export function isStatusStale(
   if (going || isHomeStatus(placeId, placeName) || !updatedAt) return false;
   const updatedMs = new Date(updatedAt).getTime();
   if (!Number.isFinite(updatedMs)) return false;
+  if (updatedMs < startOfKstDay(now)) return false;
   return now - updatedMs >= STALE_STATUS_MS;
 }

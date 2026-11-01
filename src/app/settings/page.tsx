@@ -5,9 +5,14 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getGuardedChildIds } from "@/lib/childAccess";
 import { hasOtherGuardians } from "@/lib/childRemoval";
 import NotificationSettingsToggle from "@/components/NotificationSettingsToggle";
+import InstallGuideLink from "@/components/InstallGuideLink";
 import MyChildCard from "./MyChildCard";
 import AddChildForm from "./AddChildForm";
 import MyGroups, { type SettingsGroup } from "./MyGroups";
+import QuietHoursToggle from "./QuietHoursToggle";
+import DeleteAccountButton from "./DeleteAccountButton";
+import Link from "next/link";
+import { CircleUser } from "lucide-react";
 
 function SectionHeading({
   icon,
@@ -42,6 +47,18 @@ export default async function SettingsPage() {
 
   const supabase = createServiceClient();
   const childIds = await getGuardedChildIds(supabase, user.id);
+
+  // Notification prefs (migration 0013). `*` and a missing group_mutes table
+  // both fall back to the defaults (quiet hours on, nothing muted).
+  const [{ data: prefRow }, { data: muteRows }] = await Promise.all([
+    supabase.from("users").select("*").eq("id", user.id).maybeSingle(),
+    supabase.from("group_mutes").select("group_id").eq("user_id", user.id),
+  ]);
+  const quietHours =
+    (prefRow as { quiet_hours?: boolean | null } | null)?.quiet_hours !== false;
+  const mutedGroupIds = new Set(
+    ((muteRows ?? []) as { group_id: string }[]).map((row) => row.group_id)
+  );
 
   const [{ data: childRows }, { data: childGroupRows }, { data: guardianRows }] =
     childIds.length > 0
@@ -110,6 +127,7 @@ export default async function SettingsPage() {
       myChildIds: links
         .filter((row) => row.group_id === group.id)
         .map((row) => row.child_id),
+      muted: mutedGroupIds.has(group.id),
     }));
 
   const groupNameById = new Map(
@@ -210,7 +228,30 @@ export default async function SettingsPage() {
             title="알림"
           />
           <NotificationSettingsToggle />
+          <InstallGuideLink className="self-start" />
+          <QuietHoursToggle initialEnabled={quietHours} />
         </section>
+
+        <section className="flex flex-col gap-3">
+          <SectionHeading
+            icon={
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 shadow-md shadow-gray-200">
+                <CircleUser size={16} strokeWidth={2.5} className="text-gray-700" />
+              </span>
+            }
+            title="계정"
+          />
+          <DeleteAccountButton />
+        </section>
+
+        <nav className="flex justify-center gap-4 text-xs">
+          <Link href="/terms" className="on-sky text-gray-600 underline">
+            이용약관
+          </Link>
+          <Link href="/privacy" className="on-sky font-bold text-gray-600 underline">
+            개인정보처리방침
+          </Link>
+        </nav>
       </div>
     </AppHeader>
   );

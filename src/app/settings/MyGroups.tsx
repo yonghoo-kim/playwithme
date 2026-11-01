@@ -2,7 +2,16 @@
 
 import { useCallback, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Crown, LogOut, Pencil, Plus, Trash2, Users } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Crown,
+  LogOut,
+  Pencil,
+  Plus,
+  Trash2,
+  Users,
+} from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 export interface SettingsGroup {
@@ -14,6 +23,8 @@ export interface SettingsGroup {
   isOwner: boolean;
   /** My children in it. */
   myChildIds: string[];
+  /** I turned this group's pushes off (그룹별 알림 끄기). */
+  muted: boolean;
 }
 
 interface MyGroupsProps {
@@ -63,6 +74,12 @@ export default function MyGroups({ groups, myChildren }: MyGroupsProps) {
     myChildren.length > 0 ? [myChildren[0].id] : []
   );
 
+  // Muted group ids, flipped right away (no refresh) and reverted on failure.
+  const [mutedIds, setMutedIds] = useState<Set<string>>(
+    () => new Set(groups.filter((group) => group.muted).map((group) => group.id))
+  );
+  const [mutingId, setMutingId] = useState<string | null>(null);
+
   const closeDialog = useCallback(() => setPending(null), []);
   const childName = (id: string) =>
     myChildren.find((child) => child.id === id)?.name ?? "";
@@ -78,6 +95,32 @@ export default function MyGroups({ groups, myChildren }: MyGroupsProps) {
     }
     router.refresh();
     return true;
+  }
+
+  function setMuted(groupId: string, muted: boolean) {
+    setMutedIds((current) => {
+      const next = new Set(current);
+      if (muted) next.add(groupId);
+      else next.delete(groupId);
+      return next;
+    });
+  }
+
+  async function toggleMute(group: SettingsGroup) {
+    if (mutingId) return;
+    const muted = !mutedIds.has(group.id);
+    setMuted(group.id, muted);
+    setMutingId(group.id);
+    setError(null);
+    const failure = await postJson("/api/groups/mute", {
+      groupId: group.id,
+      muted,
+    });
+    setMutingId(null);
+    if (failure) {
+      setMuted(group.id, !muted);
+      setError(failure);
+    }
   }
 
   async function confirmPending() {
@@ -207,7 +250,27 @@ export default function MyGroups({ groups, myChildren }: MyGroupsProps) {
                   </span>
                 </div>
 
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!mutedIds.has(group.id)}
+                    aria-label={`${group.name} 알림`}
+                    disabled={mutingId === group.id}
+                    onClick={() => toggleMute(group)}
+                    className={`${smallButton} mr-auto ${
+                      mutedIds.has(group.id)
+                        ? "border-gray-300 bg-gray-100 text-gray-500"
+                        : "border-green-300 bg-green-100 text-green-900"
+                    }`}
+                  >
+                    {mutedIds.has(group.id) ? (
+                      <BellOff size={12} strokeWidth={3} aria-hidden />
+                    ) : (
+                      <Bell size={12} strokeWidth={3} aria-hidden />
+                    )}
+                    {mutedIds.has(group.id) ? "알림 꺼짐" : "알림 켜짐"}
+                  </button>
                   {group.isOwner ? (
                     <>
                       <button

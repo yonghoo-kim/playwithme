@@ -90,7 +90,8 @@ describe('isHomeStatus', () => {
 })
 
 describe('isStatusStale', () => {
-  const now = Date.parse('2026-10-31T18:00:00.000Z')
+  // 21:00 KST, so 5h–21h ago is still the same KST day.
+  const now = Date.parse('2026-10-31T12:00:00.000Z')
   const ago = (ms: number) => new Date(now - ms).toISOString()
 
   it('is stale at exactly 5 hours at a non-home place', () => {
@@ -98,7 +99,17 @@ describe('isStatusStale', () => {
   })
 
   it('is stale well past 5 hours', () => {
-    expect(isStatusStale('p1', '놀이터', ago(26 * 60 * 60 * 1000), now)).toBe(true)
+    expect(isStatusStale('p1', '놀이터', ago(12 * 60 * 60 * 1000), now)).toBe(true)
+  })
+
+  it('is not stale when set before today 00:00 KST (the daily reset already sent the child home)', () => {
+    const afterMidnight = Date.parse('2026-10-31T18:00:00.000Z') // 03:00 KST
+    const yesterdayEvening = '2026-10-31T13:00:00.000Z' // 22:00 KST the day before
+    expect(isStatusStale('p1', '어린이집', yesterdayEvening, afterMidnight)).toBe(false)
+    // Set after midnight and 5h+ old: asked as usual.
+    expect(
+      isStatusStale('p1', '어린이집', '2026-10-31T15:30:00.000Z', Date.parse('2026-10-31T20:30:00.000Z'))
+    ).toBe(true)
   })
 
   it('is not stale just under 5 hours', () => {

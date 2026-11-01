@@ -4,6 +4,7 @@ import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow, isRepeatStatus } from "@/lib/status";
 import { formatPushPayload, sendGroupPush } from "@/lib/push";
 import { assertGuardian } from "@/lib/childAccess";
+import { filterStatusPushRecipients } from "@/lib/pushPrefs";
 import {
   notifyRecipientGroupIds,
   parseNotifyGroupIds,
@@ -212,11 +213,17 @@ export async function POST(request: NextRequest) {
       .select("child_id, user_id")
       .in("child_id", connectedChildIds);
 
-    const groupsByRecipient = notifyRecipientGroupIds(
-      childId,
-      childGroupRows,
-      (guardianRows ?? []) as { child_id: string; user_id: string }[],
-      groupIds
+    // Minus recipients in quiet hours, and groups they muted (a friend who
+    // muted every group they share with the child gets nothing).
+    const groupsByRecipient = await filterStatusPushRecipients(
+      supabase,
+      notifyRecipientGroupIds(
+        childId,
+        childGroupRows,
+        (guardianRows ?? []) as { child_id: string; user_id: string }[],
+        groupIds
+      ),
+      new Date()
     );
 
     if (groupsByRecipient.size > 0) {

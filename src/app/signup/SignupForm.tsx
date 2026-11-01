@@ -8,6 +8,16 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { inviteQuery } from "@/lib/inviteQuery";
 import { safeNextPath } from "@/lib/safeNext";
 import { toKoreanAuthError } from "@/lib/errorMessages";
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordReset";
+import {
+  CONSENT_ITEMS,
+  NO_CONSENT,
+  allConsented,
+  consentMetadata,
+  setAllConsent,
+  toggleConsent,
+  type ConsentState,
+} from "@/lib/consent";
 
 export default function SignupForm({
   inviteCode,
@@ -33,6 +43,8 @@ export default function SignupForm({
   ]);
   const [nextChildId, setNextChildId] = useState(1);
   const [childError, setChildError] = useState<string | null>(null);
+  const [consent, setConsent] = useState<ConsentState>(NO_CONSENT);
+  const consented = allConsented(consent);
 
   function addChild() {
     setChildren((prev) => [...prev, { id: nextChildId, name: "" }]);
@@ -72,6 +84,8 @@ export default function SignupForm({
       setChildError("아이 이름을 한 명 이상 입력해주세요");
       return;
     }
+    // The button is disabled until then; this guards an Enter-key submit.
+    if (!consented) return;
 
     setLoading(true);
 
@@ -84,8 +98,10 @@ export default function SignupForm({
         // banner when there is one and `next` to continue to afterwards.
         emailRedirectTo: `${window.location.origin}/login${query}`,
         // The handle_new_user DB trigger creates these children, each
-        // guarded by the new user, and makes the first one active.
-        data: { child_names: childNames },
+        // guarded by the new user, and makes the first one active. The
+        // consent record (terms/privacy version + time) stays in the auth
+        // user's metadata.
+        data: { child_names: childNames, ...consentMetadata(new Date()) },
       },
     });
 
@@ -169,7 +185,7 @@ export default function SignupForm({
         <input
           type="password"
           required
-          minLength={6}
+          minLength={MIN_PASSWORD_LENGTH}
           placeholder="비밀번호"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -225,6 +241,50 @@ export default function SignupForm({
         </p>
       )}
 
+      <fieldset className="mb-3 rounded-2xl border-2 border-gray-800 bg-blue-50 p-3">
+        <legend className="sr-only">약관 동의</legend>
+        <label className="flex cursor-pointer items-center gap-2 border-b-2 border-dashed border-blue-200 pb-2 font-jua text-base text-blue-900">
+          <input
+            type="checkbox"
+            checked={consented}
+            onChange={(e) => setConsent(setAllConsent(e.target.checked))}
+            className="h-5 w-5 shrink-0 accent-pink-500"
+          />
+          전체 동의
+        </label>
+        <ul className="mt-2 flex flex-col gap-2">
+          {CONSENT_ITEMS.map((item) => (
+            <li key={item.key} className="flex items-start gap-2 text-sm">
+              <label className="flex flex-1 cursor-pointer items-start gap-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  required
+                  checked={consent[item.key]}
+                  onChange={(e) =>
+                    setConsent((prev) =>
+                      toggleConsent(prev, item.key, e.target.checked)
+                    )
+                  }
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-pink-500"
+                />
+                <span>{item.label}</span>
+              </label>
+              {item.href && (
+                // A new tab, so the half-filled form stays as it is.
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-xs font-bold text-blue-900 underline"
+                >
+                  보기
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+
       {error && (
         <p className="mb-3 text-center text-sm font-bold text-red-600">
           {error}
@@ -242,7 +302,7 @@ export default function SignupForm({
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !consented}
         className="w-full rounded-2xl border-4 border-gray-800 bg-pink-300 py-2 font-jua text-lg text-pink-900 shadow-md shadow-pink-200 transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:active:scale-100"
       >
         {loading ? "가입 중..." : "가입하기 ✨"}

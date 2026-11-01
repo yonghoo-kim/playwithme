@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
       new Set((guardianRows ?? []).map((row) => row.user_id as string))
     ).filter((id) => id !== user.id);
 
-    const tokens = await loadTokens(supabase, recipients);
+    // Skips members in quiet hours and those who muted this group.
+    const tokens = await loadTokens(supabase, recipients, { groupId });
     if (tokens.length > 0) {
       const { failedTokens } = await sendGroupPush(
         getAdminMessaging(),

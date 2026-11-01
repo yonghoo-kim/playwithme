@@ -4,6 +4,7 @@ import "./globals.css";
 import NavigationProgress from "./NavigationProgress";
 import PlaygroundBackground from "@/components/PlaygroundBackground";
 import PushOpenListener from "@/components/PushOpenListener";
+import InstallGuide from "@/components/InstallGuide";
 import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
 import { WEATHER_CACHE_SCRIPT } from "@/lib/weatherCache";
 import { SKY_CHROME_SCRIPT } from "@/lib/skyChrome";
@@ -38,6 +39,7 @@ export default function RootLayout({
         <PlaygroundBackground />
         <NavigationProgress />
         <PushOpenListener />
+        <InstallGuide />
         {children}
       </body>
     </html>

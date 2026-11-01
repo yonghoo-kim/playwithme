@@ -64,8 +64,22 @@ const AUTH_ERROR_RULES: {
     korean: () => "인터넷 연결을 확인하고 다시 시도해주세요.",
   },
   {
-    pattern: /expired|invalid link|link is invalid|token is invalid/i,
+    // PKCE: the link was opened in a different browser/app than the one
+    // that asked for it, so the saved code verifier isn't there.
+    pattern: /code verifier|no valid flow state|flow state not found/i,
+    korean: () =>
+      "메일을 요청한 기기의 같은 브라우저에서 링크를 열어주세요. 안 되면 다시 요청해주세요.",
+  },
+  {
+    pattern:
+      /expired|invalid link|link is invalid|token is invalid|error in url with unspecified/i,
     korean: () => "링크가 만료되었거나 올바르지 않아요. 다시 요청해주세요.",
+  },
+  {
+    // updateUser() with no session, e.g. /reset-password opened directly.
+    pattern: /auth session missing/i,
+    korean: () =>
+      "로그인 정보가 없어요. 비밀번호 재설정 메일을 다시 요청해주세요.",
   },
 ];
 

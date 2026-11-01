@@ -4,6 +4,7 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { familyPlaces, getGuardedChildIds } from "@/lib/childAccess";
 import { buildInviteUrl } from "@/lib/inviteUrl";
 import { firstParam } from "@/lib/inviteQuery";
+import { toUnreadMap, type UnreadMap } from "@/lib/unread";
 import type { ChildStatusView } from "@/components/RealtimeStatusList";
 import ChildSwitcher from "@/components/ChildSwitcher";
 import ActiveChildStatus from "./ActiveChildStatus";
@@ -41,6 +42,22 @@ export default async function DashboardPage({
   }
 
   const supabase = createServiceClient();
+
+  // Unread chat badges, one query for every conversation (as the user, so
+  // the function sees auth.uid()). Started now, awaited at the end; null
+  // (no badges) if it fails, e.g. before migration 0014.
+  const unreadPromise: Promise<UnreadMap | null> = (async () => {
+    try {
+      const { data, error } = await authClient.rpc("unread_counts");
+      if (error) {
+        console.error("unread_counts failed:", error.message);
+        return null;
+      }
+      return toUnreadMap(data);
+    } catch {
+      return null;
+    }
+  })();
 
   const [guardedChildIds, { data: userRow }] = await Promise.all([
     getGuardedChildIds(supabase, user.id),
@@ -224,6 +241,7 @@ export default async function DashboardPage({
       : [];
 
   const status = statusRow as CurrentStatus | null;
+  const initialUnread = await unreadPromise;
 
   return (
     <AppHeader
@@ -291,6 +309,9 @@ export default async function DashboardPage({
               places={friendPlaces}
               initialOpenIds={initialOpenIds}
               focusGroupId={focusGroupId}
+              activeChildId={activeChild.id}
+              myUserId={user.id}
+              initialUnread={initialUnread}
             />
           )}
         </section>

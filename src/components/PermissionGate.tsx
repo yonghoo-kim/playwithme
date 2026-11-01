@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { installGuideMode, readInstallEnv } from "@/lib/installGuide";
 import { Bell, MapPin } from "lucide-react";
 import {
   enableNotificationsOnThisDevice,
@@ -73,7 +74,12 @@ export default function PermissionGate() {
       if (cancelled) return;
       setNotif(n);
       setLocation(l);
-      setOpen(!sessionDone() && (n === "needed" || l === "needed"));
+      // iOS outside the Home Screen app gets the install guide instead; this
+      // gate shows once the app is installed.
+      const needsInstall = installGuideMode(readInstallEnv()).kind !== "none";
+      setOpen(
+        !needsInstall && !sessionDone() && (n === "needed" || l === "needed")
+      );
     })();
     return () => {
       cancelled = true;

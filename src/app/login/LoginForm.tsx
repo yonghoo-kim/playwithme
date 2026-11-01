@@ -87,7 +87,7 @@ export default function LoginForm({
         />
       </label>
 
-      <label className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-gray-800 bg-yellow-50 px-3 py-2">
+      <label className="mb-2 flex items-center gap-3 rounded-2xl border-2 border-gray-800 bg-yellow-50 px-3 py-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-200 shadow-md shadow-blue-200">
           <Lock size={18} strokeWidth={2.5} className="text-blue-900" />
         </span>
@@ -100,6 +100,12 @@ export default function LoginForm({
           className="w-full bg-transparent outline-none"
         />
       </label>
+
+      <p className="mb-4 text-right text-xs">
+        <Link href="/forgot-password" className="text-gray-600 underline">
+          비밀번호를 잊으셨나요?
+        </Link>
+      </p>
 
       {error && (
         <p className="mb-3 text-center text-sm font-bold text-red-600">

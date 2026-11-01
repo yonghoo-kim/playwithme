@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import StatusCard from "@/components/StatusCard";
-import { directChatTitle } from "@/lib/chat";
+import { directChatTitle, directChatUrl } from "@/lib/chat";
+import {
+  directConversationKey,
+  formatUnreadCount,
+  groupConversationKey,
+  type UnreadMap,
+} from "@/lib/unread";
+import { useUnreadCounts } from "./useUnreadCounts";
 import {
   FlashFrame,
   useLiveStatuses,
@@ -35,6 +42,31 @@ interface GroupAccordionProps {
   initialOpenIds: string[];
   /** `?group=<id>` when it is one of these groups — opened and scrolled to. */
   focusGroupId: string | null;
+  /** The child these groups are for (1:1 chats are as this child). */
+  activeChildId: string;
+  myUserId: string;
+  /** Server unread_counts(); null when unavailable (no badges). */
+  initialUnread: UnreadMap | null;
+}
+
+/** Small count bubble on a chat chip ("9+" cap); nothing when 0. */
+function UnreadBadge({ count }: { count: number | undefined }) {
+  const text = formatUnreadCount(count);
+  if (!text) return null;
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -right-2 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-gray-800 bg-pink-500 px-1 font-jua text-[10px] leading-none text-white"
+    >
+      {text}
+    </span>
+  );
+}
+
+/** " (안 읽은 메시지 3개)" for the chip's label, or "". */
+function unreadLabel(count: number | undefined): string {
+  const text = formatUnreadCount(count);
+  return text ? ` (안 읽은 메시지 ${text}개)` : "";
 }
 
 /**
@@ -50,8 +82,12 @@ export default function GroupAccordion({
   places,
   initialOpenIds,
   focusGroupId,
+  activeChildId,
+  myUserId,
+  initialUnread,
 }: GroupAccordionProps) {
   const { resolve } = useLiveStatuses(friends, places);
+  const unread = useUnreadCounts(initialUnread, myUserId);
 
   const friendsById = useMemo(
     () => new Map(friends.map((friend) => [friend.childId, friend])),
@@ -103,6 +139,7 @@ export default function GroupAccordion({
         const groupFriends = group.friendIds
           .map((id) => friendsById.get(id))
           .filter((friend): friend is ChildStatusView => !!friend);
+        const groupUnread = unread?.[groupConversationKey(group.id)];
 
         return (
           <li
@@ -136,11 +173,12 @@ export default function GroupAccordion({
               <span className="flex shrink-0 flex-col items-end gap-1">
                 <Link
                   href={`/chat/${group.id}`}
-                  aria-label={`${group.name} 그룹 채팅`}
-                  className="flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-2 py-0.5 font-jua text-xs text-yellow-900 transition-transform hover:scale-105 active:scale-95"
+                  aria-label={`${group.name} 그룹 채팅${unreadLabel(groupUnread)}`}
+                  className="relative flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-2 py-0.5 font-jua text-xs text-yellow-900 transition-transform hover:scale-105 active:scale-95"
                 >
                   <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
                   채팅
+                  <UnreadBadge count={groupUnread} />
                 </Link>
                 <InviteCopyButton
                   groupName={group.name}
@@ -192,6 +230,10 @@ export default function GroupAccordion({
                   ) : (
                     groupFriends.map((friend) => {
                       const view = resolve(friend);
+                      const friendUnread =
+                        unread?.[
+                          directConversationKey(activeChildId, friend.childId)
+                        ];
                       return (
                         <FlashFrame
                           key={friend.childId}
@@ -205,12 +247,13 @@ export default function GroupAccordion({
                             going={view.going}
                             action={
                               <Link
-                                href={`/chat/direct/${encodeURIComponent(friend.childId)}`}
-                                aria-label={directChatTitle(friend.childName)}
-                                className="flex shrink-0 items-center gap-1 rounded-full border-2 border-gray-800 bg-pink-100 px-2 py-1 font-jua text-xs text-pink-800 transition-transform hover:scale-105 active:scale-95"
+                                href={directChatUrl(friend.childId, activeChildId)}
+                                aria-label={`${directChatTitle(friend.childName)}${unreadLabel(friendUnread)}`}
+                                className="relative flex shrink-0 items-center gap-1 rounded-full border-2 border-gray-800 bg-pink-100 px-2 py-1 font-jua text-xs text-pink-800 transition-transform hover:scale-105 active:scale-95"
                               >
                                 <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
                                 채팅
+                                <UnreadBadge count={friendUnread} />
                               </Link>
                             }
                           />
