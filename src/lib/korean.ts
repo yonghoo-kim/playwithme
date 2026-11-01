@@ -16,3 +16,13 @@ export function withDirectionParticle(place: string): string {
     ? `${place}으로`
     : `${place}로`;
 }
+
+// Object particle: 을 after any final consonant (지훈 -> 지훈을, 하늘 ->
+// 하늘을), 를 after an open syllable (하나 -> 하나를). Non-Hangul endings
+// (Amy, 2) can't be read reliably, so they get the neutral 을(를).
+export function withObjectParticle(word: string): string {
+  const offset = word.charCodeAt(word.length - 1) - HANGUL_FIRST;
+  const isHangul = offset >= 0 && offset < HANGUL_COUNT;
+  if (!isHangul) return `${word}을(를)`;
+  return offset % 28 !== 0 ? `${word}을` : `${word}를`;
+}

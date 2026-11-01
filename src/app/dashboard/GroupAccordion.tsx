@@ -95,7 +95,7 @@ export default function GroupAccordion({
   }
 
   return (
-    <ul className="flex flex-col gap-5 pt-2">
+    <ul className="flex flex-col gap-3">
       {groups.map((group) => {
         const open = openIds.has(group.id);
         const buttonId = `group-toggle-${group.id}`;
@@ -110,10 +110,30 @@ export default function GroupAccordion({
             id={`group-${group.id}`}
             className="flex scroll-mt-4 flex-col"
           >
-            <div className="relative">
-              {/* Group chat + invite as stickers on the card's top-right edge,
-                  outside the toggle button so they work while collapsed. */}
-              <span className="absolute -top-3 right-4 z-10 flex items-center gap-1.5">
+            {/* The card: the name area and the chevron both toggle; group chat
+                and invite sit inside, between them (links can't nest in a button). */}
+            <div className="flex items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105">
+              <button
+                type="button"
+                id={buttonId}
+                aria-expanded={open}
+                aria-controls={panelId}
+                onClick={() => toggle(group.id)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
+                  <Users size={20} strokeWidth={2.5} className="text-green-900" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-jua text-lg text-blue-900">
+                    {group.name}
+                  </span>
+                  <span className="text-xs font-bold text-gray-500">
+                    아이 {group.childCount}명
+                  </span>
+                </span>
+              </button>
+              <span className="flex shrink-0 flex-col items-end gap-1">
                 <Link
                   href={`/chat/${group.id}`}
                   aria-label={`${group.name} 그룹 채팅`}
@@ -130,28 +150,17 @@ export default function GroupAccordion({
               </span>
               <button
                 type="button"
-                id={buttonId}
                 aria-expanded={open}
                 aria-controls={panelId}
+                aria-label={`${group.name} ${open ? "접기" : "펼치기"}`}
                 onClick={() => toggle(group.id)}
-                className="flex w-full items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 text-left shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+                className="shrink-0 transition-transform active:scale-95"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
-                  <Users size={20} strokeWidth={2.5} className="text-green-900" />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-jua text-lg text-blue-900">
-                    {group.name}
-                  </span>
-                  <span className="text-xs font-bold text-gray-500">
-                    아이 {group.childCount}명
-                  </span>
-                </span>
                 <ChevronDown
                   size={22}
                   strokeWidth={3}
                   aria-hidden
-                  className={`shrink-0 text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+                  className={`text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none ${
                     open ? "rotate-180" : "rotate-0"
                   }`}
                 />

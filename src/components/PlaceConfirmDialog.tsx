@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
-import {
-  deselectedGroupIds,
-  initialNotifySelection,
-  notifyGroupIdsToSend,
-  readNotifyOff,
-  saveNotifyOff,
-} from "@/lib/notifyGroups";
+import { notifyGroupIdsToSend } from "@/lib/notifyGroups";
 
 export interface NotifyGroup {
   id: string;
@@ -18,8 +13,6 @@ export interface NotifyGroup {
 interface PlaceConfirmDialogProps {
   /** "○○로 가시겠습니까?" */
   message: string;
-  /** The child whose status changes (keys the remembered selection). */
-  childId: string;
   /** The child's groups, in join order. */
   groups: NotifyGroup[];
   /**
@@ -31,28 +24,21 @@ interface PlaceConfirmDialogProps {
 }
 
 /**
- * The place confirm dialog: 아니요 / 네, 갈래요! / 가는 중이에요, plus — when
- * the child is in 2+ groups — "알림 보낼 그룹" chips choosing which groups get
- * the push (the status itself is visible to every group regardless). The
- * last choice per child is remembered on this phone; all groups start
- * selected the first time. Escape or a tap outside cancels.
+ * The place confirm dialog: 아니요 / 네, 갈래요! / 가는 중이에요, plus
+ * "알림 보낼 그룹" chips choosing which groups get the push (the status itself
+ * is visible to every group regardless). Every chip starts off, so nobody is
+ * notified unless picked. Rendered into <body> so a transformed ancestor
+ * can't pin it; Escape or a tap outside cancels.
  */
 export default function PlaceConfirmDialog({
   message,
-  childId,
   groups,
   onConfirm,
   onCancel,
 }: PlaceConfirmDialogProps) {
   const groupIds = groups.map((group) => group.id);
-  const showChips = groups.length > 1;
-  // Only ever rendered after a tap (never on the server), so the remembered
-  // choice can be read straight away — no flash of "all selected".
-  const [selected, setSelected] = useState<string[]>(() =>
-    showChips
-      ? initialNotifySelection(groupIds, readNotifyOff(childId))
-      : groupIds
-  );
+  const showChips = groups.length > 0;
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -71,15 +57,14 @@ export default function PlaceConfirmDialog({
   }
 
   function confirm(going: boolean) {
-    if (showChips) saveNotifyOff(childId, deselectedGroupIds(groupIds, selected));
     onConfirm(going, notifyGroupIdsToSend(groupIds, selected));
   }
 
   const noneSelected = showChips && selected.length === 0;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 px-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 px-6 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
@@ -174,6 +159,7 @@ export default function PlaceConfirmDialog({
           가는 중이에요 🚶
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

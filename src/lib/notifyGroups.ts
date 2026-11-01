@@ -60,67 +60,16 @@ export function notifyRecipientGroupIds(
   );
 }
 
-// --- Remembered selection (client) ---------------------------------------
-// Stored as the groups the guardian turned OFF, so a group the child joins
-// later starts selected and a group that no longer exists is just ignored.
-
-const STORAGE_PREFIX = "playwithme_notify_off:";
-
-/**
- * The initial selection: every group except the stored "off" ones. A
- * missing or malformed stored value selects everything.
- */
-export function initialNotifySelection(
-  groupIds: string[],
-  storedOff: unknown
-): string[] {
-  const off = new Set(
-    Array.isArray(storedOff)
-      ? storedOff.filter((id): id is string => typeof id === "string")
-      : []
-  );
-  return groupIds.filter((id) => !off.has(id));
-}
-
-/** The groups in `groupIds` that are not selected (what gets stored). */
-export function deselectedGroupIds(
-  groupIds: string[],
-  selected: string[]
-): string[] {
-  const on = new Set(selected);
-  return groupIds.filter((id) => !on.has(id));
-}
-
 /**
  * What to send as `notifyGroupIds`: `undefined` (all groups — also covers a
- * group joined since the page loaded) when every group is selected or the
- * child has at most one group; otherwise the selected ids (possibly none).
+ * group joined since the page loaded) when the child has no groups or every
+ * group is selected; otherwise the selected ids (possibly none).
  */
 export function notifyGroupIdsToSend(
   groupIds: string[],
   selected: string[]
 ): string[] | undefined {
-  if (groupIds.length <= 1) return undefined;
+  if (groupIds.length === 0) return undefined;
   const picked = groupIds.filter((id) => selected.includes(id));
   return picked.length === groupIds.length ? undefined : picked;
-}
-
-export function readNotifyOff(childId: string): unknown {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_PREFIX + childId);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveNotifyOff(childId: string, offGroupIds: string[]): void {
-  try {
-    window.localStorage.setItem(
-      STORAGE_PREFIX + childId,
-      JSON.stringify(offGroupIds)
-    );
-  } catch {
-    // Storage blocked: the choice just isn't remembered next time.
-  }
 }

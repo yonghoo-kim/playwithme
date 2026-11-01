@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Baby, Bell, UserPlus, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getGuardedChildIds } from "@/lib/childAccess";
+import { hasOtherGuardians } from "@/lib/childRemoval";
 import NotificationSettingsToggle from "@/components/NotificationSettingsToggle";
 import MyChildCard from "./MyChildCard";
 import AddChildForm from "./AddChildForm";
@@ -42,7 +43,7 @@ export default async function SettingsPage() {
   const supabase = createServiceClient();
   const childIds = await getGuardedChildIds(supabase, user.id);
 
-  const [{ data: childRows }, { data: childGroupRows }] =
+  const [{ data: childRows }, { data: childGroupRows }, { data: guardianRows }] =
     childIds.length > 0
       ? await Promise.all([
           supabase
@@ -55,8 +56,12 @@ export default async function SettingsPage() {
             .select("child_id, group_id, joined_at")
             .in("child_id", childIds)
             .order("joined_at", { ascending: true }),
+          supabase
+            .from("child_guardians")
+            .select("child_id, user_id")
+            .in("child_id", childIds),
         ])
-      : [{ data: [] }, { data: [] }];
+      : [{ data: [] }, { data: [] }, { data: [] }];
 
   const links = (childGroupRows ?? []) as {
     child_id: string;
@@ -118,6 +123,12 @@ export default async function SettingsPage() {
     (child) => ({
       id: child.id,
       name: child.name,
+      hasOtherGuardians: hasOtherGuardians(
+        ((guardianRows ?? []) as { child_id: string; user_id: string }[])
+          .filter((row) => row.child_id === child.id)
+          .map((row) => row.user_id),
+        user.id
+      ),
       groups: links
         .filter((row) => row.child_id === child.id)
         .map((row) => ({
@@ -154,6 +165,7 @@ export default async function SettingsPage() {
                     childId={child.id}
                     name={child.name}
                     groups={child.groups}
+                    hasOtherGuardians={child.hasOtherGuardians}
                   />
                 </li>
               ))}

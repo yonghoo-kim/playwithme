@@ -122,7 +122,6 @@ export default function PlaceSelector({
       {pending && (
         <PlaceConfirmDialog
           message={`${withDirectionParticle(pending.placeName)} 가시겠습니까?`}
-          childId={childId}
           groups={groups}
           onConfirm={confirm}
           onCancel={closeDialog}

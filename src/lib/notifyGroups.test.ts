@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_NOTIFY_GROUP_IDS,
-  deselectedGroupIds,
-  initialNotifySelection,
   notifyGroupIdsToSend,
   notifyRecipientGroupIds,
   parseNotifyGroupIds,
@@ -114,34 +112,14 @@ describe('notifyRecipientGroupIds', () => {
   })
 })
 
-describe('remembered selection', () => {
-  const groups = ['daycare', 'apt', 'church']
-
-  it('selects everything without a stored value', () => {
-    expect(initialNotifySelection(groups, null)).toEqual(groups)
-    expect(initialNotifySelection(groups, 'garbage')).toEqual(groups)
-  })
-
-  it('turns off the stored groups and ignores ones that no longer exist', () => {
-    expect(initialNotifySelection(groups, ['apt', 'gone', 3])).toEqual(['daycare', 'church'])
-  })
-
-  it('round-trips through deselectedGroupIds', () => {
-    const off = deselectedGroupIds(groups, ['church'])
-    expect(off).toEqual(['daycare', 'apt'])
-    expect(initialNotifySelection(groups, off)).toEqual(['church'])
-  })
-
-  it('starts a newly joined group selected', () => {
-    const off = deselectedGroupIds(['daycare', 'apt'], ['daycare'])
-    expect(initialNotifySelection(['daycare', 'apt', 'new'], off)).toEqual(['daycare', 'new'])
-  })
-})
-
 describe('notifyGroupIdsToSend', () => {
-  it('sends nothing (all groups) for zero or one group', () => {
+  it('sends nothing (all groups) for a child with no groups', () => {
     expect(notifyGroupIdsToSend([], [])).toBeUndefined()
-    expect(notifyGroupIdsToSend(['g'], [])).toBeUndefined()
+  })
+
+  it('lets a single group be switched off', () => {
+    expect(notifyGroupIdsToSend(['g'], [])).toEqual([])
+    expect(notifyGroupIdsToSend(['g'], ['g'])).toBeUndefined()
   })
 
   it('sends nothing (all groups) when every group is selected', () => {

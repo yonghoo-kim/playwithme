@@ -1,26 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { Baby, Check, Copy, KeyRound } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Baby, Check, Copy, KeyRound, Trash2 } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { deleteChildMessage } from "@/lib/childRemoval";
 
 interface MyChildCardProps {
   childId: string;
   name: string;
   /** Groups this child is in (only the group names — no other children). */
   groups: { id: string; name: string }[];
+  /** Someone else also guards this child (deleting only removes me). */
+  hasOtherGuardians: boolean;
 }
 
 /**
  * One child the signed-in user guards: its groups as chips, and a
  * "보호자 초대 링크 만들기" button that issues a single-use, 7-day guardian
  * invite link (`POST /api/children/guardian-invites`) to copy and send to a
- * co-guardian.
+ * co-guardian. "아이 지우기" (`POST /api/children/delete`) removes the child
+ * from my list — for everyone if I'm its only guardian.
  */
-export default function MyChildCard({ childId, name, groups }: MyChildCardProps) {
+export default function MyChildCard({
+  childId,
+  name,
+  groups,
+  hasOtherGuardians,
+}: MyChildCardProps) {
+  const router = useRouter();
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const closeDeleteDialog = useCallback(() => setConfirmingDelete(false), []);
+
+  async function deleteChild() {
+    setConfirmingDelete(false);
+    setError(null);
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/children/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error ?? "아이를 지우지 못했어요. 다시 시도해주세요.");
+        setDeleting(false);
+        return;
+      }
+      // Keep the button disabled while the card disappears on refresh.
+      router.refresh();
+    } catch {
+      setError("아이를 지우지 못했어요. 다시 시도해주세요.");
+      setDeleting(false);
+    }
+  }
 
   async function createGuardianLink() {
     setError(null);
@@ -128,6 +168,31 @@ export default function MyChildCard({ childId, name, groups }: MyChildCardProps)
       )}
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setConfirmingDelete(true);
+          }}
+          disabled={deleting}
+          aria-label={`${name} 지우기`}
+          className="flex items-center gap-1 rounded-full border-2 border-red-300 bg-red-50 px-3 py-1 text-xs font-bold text-red-600 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
+        >
+          <Trash2 size={14} strokeWidth={2.5} />
+          {deleting ? "지우는 중…" : "아이 지우기"}
+        </button>
+      </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={deleteChildMessage(name, hasOtherGuardians)}
+          confirmLabel="지울게요"
+          onConfirm={deleteChild}
+          onCancel={closeDeleteDialog}
+        />
+      )}
     </div>
   );
 }

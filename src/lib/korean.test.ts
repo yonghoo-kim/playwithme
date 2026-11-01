@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { withDirectionParticle } from './korean'
+import { withDirectionParticle, withObjectParticle } from './korean'
 
 describe('withDirectionParticle', () => {
   it('uses 로 after an open syllable', () => {
@@ -25,5 +25,22 @@ describe('withDirectionParticle', () => {
 
   it('uses 로 for non-Hangul endings', () => {
     expect(withDirectionParticle('Kids Cafe')).toBe('Kids Cafe로')
+  })
+})
+
+describe('withObjectParticle', () => {
+  it('uses 을 after a final consonant, including ㄹ', () => {
+    expect(withObjectParticle('지훈')).toBe('지훈을')
+    expect(withObjectParticle('하늘')).toBe('하늘을')
+  })
+
+  it('uses 를 after an open syllable', () => {
+    expect(withObjectParticle('하나')).toBe('하나를')
+    expect(withObjectParticle('서아')).toBe('서아를')
+  })
+
+  it('uses 을(를) for non-Hangul endings and an empty string', () => {
+    expect(withObjectParticle('Amy')).toBe('Amy을(를)')
+    expect(withObjectParticle('')).toBe('을(를)')
   })
 })
