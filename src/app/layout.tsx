@@ -8,6 +8,7 @@ import InstallGuide from "@/components/InstallGuide";
 import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
 import { WEATHER_CACHE_SCRIPT } from "@/lib/weatherCache";
 import { SKY_CHROME_SCRIPT } from "@/lib/skyChrome";
+import { OG_IMAGE, SITE_DESCRIPTION, SITE_URL } from "@/lib/inviteMetadata";
 
 const jua = Jua({
   subsets: ["latin"],
@@ -16,8 +17,17 @@ const jua = Jua({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "나랑 놀자",
-  description: "친구들과 실시간으로 놀이 상태를 공유해요",
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: "나랑 놀자",
+    description: SITE_DESCRIPTION,
+    siteName: "나랑 놀자",
+    locale: "ko_KR",
+    type: "website",
+    images: [OG_IMAGE],
+  },
 };
 
 export default function RootLayout({

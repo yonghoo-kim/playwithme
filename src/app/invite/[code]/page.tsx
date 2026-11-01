@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getInviteContext } from "@/lib/inviteContext";
+import { inviteMetadata } from "@/lib/inviteMetadata";
 import { Frown, Users } from "lucide-react";
 import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { firstParam, inviteQuery } from "@/lib/inviteQuery";
@@ -25,6 +28,19 @@ const ERROR_COPY: Record<string, string> = {
   name: "아이 이름을 입력해주세요",
   same: "이미 같은 이름의 그룹에 들어가 있어요",
 };
+
+// Messenger link previews (KakaoTalk etc.) read these tags.
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: { code: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}): Promise<Metadata> {
+  return inviteMetadata(
+    await getInviteContext(params.code, firstParam(searchParams.from))
+  );
+}
 
 export default async function InvitePage({
   params,

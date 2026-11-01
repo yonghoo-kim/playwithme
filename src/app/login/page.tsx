@@ -1,8 +1,22 @@
+import type { Metadata } from "next";
 import { getInviteContext } from "@/lib/inviteContext";
+import { inviteMetadata } from "@/lib/inviteMetadata";
 import { firstParam } from "@/lib/inviteQuery";
 import { safeNextPath } from "@/lib/safeNext";
 import InviteBanner from "../InviteBanner";
 import LoginForm from "./LoginForm";
+
+// A logged-out invite link lands here, so link previews read these tags.
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}): Promise<Metadata> {
+  const code = firstParam(searchParams.invite);
+  return inviteMetadata(
+    code ? await getInviteContext(code, firstParam(searchParams.from)) : null
+  );
+}
 
 export default async function LoginPage({
   searchParams,
