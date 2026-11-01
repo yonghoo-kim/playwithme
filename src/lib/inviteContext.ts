@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { hasBatchim } from "@/lib/push";
+import { familyLabel } from "@/lib/chat";
 
 export interface InviteContext {
   code: string;
@@ -53,7 +53,7 @@ export async function getInviteContext(
 
       const name = (child?.name as string | undefined)?.trim();
       if (name) {
-        inviterLabel = hasBatchim(name) ? `${name}이네` : `${name}네`;
+        inviterLabel = familyLabel(name);
       }
     }
   }

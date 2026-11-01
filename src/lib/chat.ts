@@ -2,9 +2,14 @@ import { hasBatchim, type PushPayload } from "./push";
 
 export const MAX_MESSAGE_LENGTH = 500;
 
-/** How a family is named in chat: "지훈이네", "하나네". */
+/**
+ * How a family is named: "지훈이네", "하나네", and "김이강네" — the 이 only
+ * goes after a bare given name (2 syllables or fewer); full names with a
+ * surname take 네 directly.
+ */
 export function familyLabel(childName: string): string {
-  return hasBatchim(childName) ? `${childName}이네` : `${childName}네`;
+  const name = childName.trim();
+  return hasBatchim(name) && name.length <= 2 ? `${name}이네` : `${name}네`;
 }
 
 /** Trimmed message text, or null when there is nothing to send. */

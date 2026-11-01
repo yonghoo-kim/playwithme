@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hasBatchim } from "@/lib/push";
+import { familyLabel } from "@/lib/chat";
 
 const CODE_PATTERN = /^[A-Za-z0-9]{16}$/;
 
@@ -14,11 +14,6 @@ export type GuardianInviteLookup =
       /** e.g. "지훈이네" / "민호네" */
       inviterLabel: string;
     };
-
-/** "지훈" -> "지훈이네", "민호" -> "민호네". */
-export function familyLabel(childName: string): string {
-  return hasBatchim(childName) ? `${childName}이네` : `${childName}네`;
-}
 
 /**
  * Resolves a guardian invite code with the service-role client and decides

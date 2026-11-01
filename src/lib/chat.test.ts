@@ -115,6 +115,13 @@ describe('familyLabel', () => {
     expect(familyLabel('지훈')).toBe('지훈이네')
     expect(familyLabel('하나')).toBe('하나네')
   })
+
+  it('takes 네 directly after a full name with a surname', () => {
+    expect(familyLabel('김이강')).toBe('김이강네')
+    expect(familyLabel('고이현')).toBe('고이현네')
+    expect(familyLabel('남궁민수')).toBe('남궁민수네')
+    expect(familyLabel(' 강 ')).toBe('강이네')
+  })
 })
 
 describe('normalizeMessage', () => {
