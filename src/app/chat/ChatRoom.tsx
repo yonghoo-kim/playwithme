@@ -20,7 +20,6 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import FcmTokenSync from "@/components/FcmTokenSync";
 import {
   MAX_MESSAGE_LENGTH,
-  QUICK_MESSAGES,
   directPair,
   mergeMessages,
   normalizeMessage,
@@ -69,8 +68,7 @@ const RECONNECT_MS = 3000;
 
 /**
  * Chat screen for a group or a 1:1 conversation: messages (mine on the
- * right), a date line when the day changes, one-tap quick questions and an
- * input. Sending goes through the API (which also notifies the others).
+ * right), a date line when the day changes, and a typed-only input. Sending goes through the API (which also notifies the others).
  *
  * Staying current: Realtime only delivers rows inserted while the socket is
  * joined — nothing missed while the phone slept or the PWA sat in the
@@ -392,20 +390,6 @@ export default function ChatRoom({
             </div>
           );
         })}
-      </div>
-
-      <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
-        {QUICK_MESSAGES.map((quick) => (
-          <button
-            key={quick}
-            type="button"
-            disabled={sending}
-            onClick={() => void send(quick)}
-            className="shrink-0 rounded-full border-2 border-gray-800 bg-yellow-100 px-3 py-1 font-jua text-sm text-yellow-900 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
-          >
-            {quick}
-          </button>
-        ))}
       </div>
 
       {error && (

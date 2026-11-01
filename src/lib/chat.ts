@@ -2,15 +2,6 @@ import { hasBatchim, type PushPayload } from "./push";
 
 export const MAX_MESSAGE_LENGTH = 500;
 
-/** One-tap questions shown above the chat input. */
-export const QUICK_MESSAGES = [
-  "언제 와? 🕐",
-  "어디야? 📍",
-  "곧 갈게! 🏃",
-  "같이 놀자! 🎈",
-  "오늘은 못 가요 🙏",
-];
-
 /** How a family is named in chat: "지훈이네", "하나네". */
 export function familyLabel(childName: string): string {
   return hasBatchim(childName) ? `${childName}이네` : `${childName}네`;
