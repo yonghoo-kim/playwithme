@@ -4,8 +4,7 @@ import LegalPage, { LegalList, LegalSection } from "@/components/LegalPage";
 import { LEGAL_VERSION } from "@/lib/consent";
 
 // DRAFT — NEEDS LEGAL REVIEW before launch. Written by the dev team to match
-// how the app works today. Placeholder the operator must fill in:
-// "[운영자 이메일]" (and the operator's name/business details if required).
+// how the app works today.
 // Bump LEGAL_VERSION (src/lib/consent.ts) together with the effective date
 // whenever this text changes.
 
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
   title: "이용약관 | 나랑 놀자",
 };
 
-const CONTACT = "[운영자 이메일]";
+const CONTACT = "tjdsidvkfl0117@gmail.com";
 
 export default function TermsPage() {
   return (

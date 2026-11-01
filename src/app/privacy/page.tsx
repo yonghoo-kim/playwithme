@@ -4,8 +4,7 @@ import { LEGAL_VERSION } from "@/lib/consent";
 
 // DRAFT — NEEDS LEGAL REVIEW before launch. Written by the dev team to match
 // what the app actually collects and how (supabase/migrations, src/lib,
-// src/app/api/account/delete). Placeholders the operator must fill in:
-// "[운영자 이메일]", "[운영자 이름]", and the Supabase project region.
+// src/app/api/account/delete).
 // Bump LEGAL_VERSION (src/lib/consent.ts) together with the effective date
 // whenever this text changes.
 
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
   title: "개인정보처리방침 | 나랑 놀자",
 };
 
-const CONTACT = "[운영자 이메일]";
+const CONTACT = "tjdsidvkfl0117@gmail.com";
 
 export default function PrivacyPage() {
   return (
@@ -167,7 +166,7 @@ export default function PrivacyPage() {
         </p>
         <LegalList>
           <li>
-            <b>Supabase Inc.</b> (데이터 저장 위치: [Supabase 프로젝트 리전]) —
+            <b>Supabase Inc.</b> (데이터 저장 위치: 일본 도쿄, ap-northeast-1) —
             회원 인증, 데이터베이스 저장. 위 1번의 계정·아이·그룹·장소·상태·채팅
             정보와 기기 토큰. 문의:{" "}
             <a href="https://supabase.com/privacy" className="text-blue-900 underline" target="_blank" rel="noopener noreferrer">
@@ -266,7 +265,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="11. 개인정보 보호책임자와 문의">
         <LegalList>
-          <li>개인정보 보호책임자: [운영자 이름]</li>
+          <li>개인정보 보호책임자: 김용후</li>
           <li>연락처: {CONTACT}</li>
         </LegalList>
         <p>
