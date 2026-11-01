@@ -3,7 +3,12 @@ import { createAuthClient, createServiceClient } from "@/lib/supabase/server";
 import { getAdminMessaging } from "@/lib/firebase/admin";
 import { buildStatusUpsertRow, isRepeatStatus } from "@/lib/status";
 import { formatPushPayload, sendGroupPush } from "@/lib/push";
-import { assertGuardian, statusRecipientGroupIds } from "@/lib/childAccess";
+import { assertGuardian } from "@/lib/childAccess";
+import {
+  notifyRecipientGroupIds,
+  parseNotifyGroupIds,
+  selectNotifyGroupIds,
+} from "@/lib/notifyGroups";
 
 /** PostgREST/Postgres "no such column" for `going` (migration 0012 not run). */
 function isMissingGoingColumn(error: {
@@ -20,8 +25,11 @@ function isMissingGoingColumn(error: {
  * Sets a child's one status (shared with every group the child is in) and
  * notifies everyone connected to the child.
  * Body: `{ childId: string; placeId: string | null; going?: boolean;
- * deviceToken?: string }` — `going: true` = on the way there ("가는 중"),
- * omitted/false = arrived.
+ * deviceToken?: string; notifyGroupIds?: string[] }` — `going: true` = on
+ * the way there ("가는 중"), omitted/false = arrived. `notifyGroupIds` limits
+ * the push to those of the child's groups (ids it isn't in are ignored;
+ * `[]` = no push); omitted = every group. The status itself is visible to
+ * all of the child's groups either way.
  */
 export async function POST(request: NextRequest) {
   let body: {
@@ -29,6 +37,7 @@ export async function POST(request: NextRequest) {
     placeId?: unknown;
     going?: unknown;
     deviceToken?: unknown;
+    notifyGroupIds?: unknown;
   };
   try {
     body = await request.json();
@@ -41,9 +50,11 @@ export async function POST(request: NextRequest) {
   const going = body.going === true;
   const deviceToken =
     typeof body.deviceToken === "string" ? body.deviceToken : null;
+  const requestedGroupIds = parseNotifyGroupIds(body.notifyGroupIds);
 
   if (
     !childId ||
+    requestedGroupIds === "invalid" ||
     !(placeId === null || (typeof placeId === "string" && placeId !== "")) ||
     !(body.going === undefined || typeof body.going === "boolean")
   ) {
@@ -163,7 +174,11 @@ export async function POST(request: NextRequest) {
       .eq("child_id", childId)
       .order("joined_at", { ascending: true });
 
-    const groupIds = (ownGroups ?? []).map((r) => r.group_id as string);
+    // Only the groups the guardian chose to notify (all when none given).
+    const groupIds = selectNotifyGroupIds(
+      (ownGroups ?? []).map((r) => r.group_id as string),
+      requestedGroupIds
+    );
 
     const [{ data: groupRows }, { data: groupNameRows }] =
       groupIds.length > 0
@@ -197,10 +212,11 @@ export async function POST(request: NextRequest) {
       .select("child_id, user_id")
       .in("child_id", connectedChildIds);
 
-    const groupsByRecipient = statusRecipientGroupIds(
+    const groupsByRecipient = notifyRecipientGroupIds(
       childId,
       childGroupRows,
-      (guardianRows ?? []) as { child_id: string; user_id: string }[]
+      (guardianRows ?? []) as { child_id: string; user_id: string }[],
+      groupIds
     );
 
     if (groupsByRecipient.size > 0) {

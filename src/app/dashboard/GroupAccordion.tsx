@@ -95,7 +95,7 @@ export default function GroupAccordion({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col gap-5 pt-2">
       {groups.map((group) => {
         const open = openIds.has(group.id);
         const buttonId = `group-toggle-${group.id}`;
@@ -110,34 +110,53 @@ export default function GroupAccordion({
             id={`group-${group.id}`}
             className="flex scroll-mt-4 flex-col"
           >
-            <button
-              type="button"
-              id={buttonId}
-              aria-expanded={open}
-              aria-controls={panelId}
-              onClick={() => toggle(group.id)}
-              className="flex w-full items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 text-left shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
-                <Users size={20} strokeWidth={2.5} className="text-green-900" />
+            <div className="relative">
+              {/* Group chat + invite as stickers on the card's top-right edge,
+                  outside the toggle button so they work while collapsed. */}
+              <span className="absolute -top-3 right-4 z-10 flex items-center gap-1.5">
+                <Link
+                  href={`/chat/${group.id}`}
+                  aria-label={`${group.name} 그룹 채팅`}
+                  className="flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-2 py-0.5 font-jua text-xs text-yellow-900 transition-transform hover:scale-105 active:scale-95"
+                >
+                  <MessageCircle size={12} strokeWidth={2.5} aria-hidden />
+                  채팅
+                </Link>
+                <InviteCopyButton
+                  groupName={group.name}
+                  inviteUrl={group.inviteUrl}
+                  compact
+                />
               </span>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate font-jua text-lg text-blue-900">
-                  {group.name}
+              <button
+                type="button"
+                id={buttonId}
+                aria-expanded={open}
+                aria-controls={panelId}
+                onClick={() => toggle(group.id)}
+                className="flex w-full items-center gap-3 rounded-2xl border-4 border-gray-800 bg-white p-4 text-left shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-200 shadow-md shadow-green-200">
+                  <Users size={20} strokeWidth={2.5} className="text-green-900" />
                 </span>
-                <span className="text-xs font-bold text-gray-500">
-                  아이 {group.childCount}명
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-jua text-lg text-blue-900">
+                    {group.name}
+                  </span>
+                  <span className="text-xs font-bold text-gray-500">
+                    아이 {group.childCount}명
+                  </span>
                 </span>
-              </span>
-              <ChevronDown
-                size={22}
-                strokeWidth={3}
-                aria-hidden
-                className={`shrink-0 text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none ${
-                  open ? "rotate-180" : "rotate-0"
-                }`}
-              />
-            </button>
+                <ChevronDown
+                  size={22}
+                  strokeWidth={3}
+                  aria-hidden
+                  className={`shrink-0 text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+                    open ? "rotate-180" : "rotate-0"
+                  }`}
+                />
+              </button>
+            </div>
 
             {/* grid-rows 0fr ↔ 1fr animates to the content's real height;
                 `visibility` flips at the end of a collapse, so closed panels
@@ -153,26 +172,9 @@ export default function GroupAccordion({
               <div className="min-h-0 overflow-hidden">
                 {/* Room on every side for the cards' shadow and flash ring. */}
                 <div className="ml-4 mt-3 flex flex-col gap-3 border-l-4 border-dashed border-gray-300 pb-3 pl-3 pr-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-jua text-lg text-pink-700">
-                      친구들
-                    </span>
-                    <span className="ml-auto flex items-center gap-2">
-                      {/* The whole group's chat; each friend card has its own 1:1 chat. */}
-                      <Link
-                        href={`/chat/${group.id}`}
-                        aria-label={`${group.name} 그룹 채팅`}
-                        className="flex items-center gap-1 rounded-full border-2 border-gray-800 bg-yellow-100 px-3 py-1 font-jua text-sm text-yellow-900 transition-transform hover:scale-105 active:scale-95"
-                      >
-                        <MessageCircle size={14} strokeWidth={2.5} aria-hidden />
-                        채팅
-                      </Link>
-                      <InviteCopyButton
-                        groupName={group.name}
-                        inviteUrl={group.inviteUrl}
-                      />
-                    </span>
-                  </div>
+                  <span className="font-jua text-lg text-pink-700">
+                    친구들
+                  </span>
 
                   {groupFriends.length === 0 ? (
                     <p className="rounded-2xl border-4 border-dashed border-gray-300 bg-white/60 p-4 text-center text-sm font-bold text-gray-600">

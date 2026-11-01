@@ -4,7 +4,9 @@ import { useCallback, useState } from "react";
 import type { Place } from "@/types/db";
 import PlaceButton from "@/components/PlaceButton";
 import AddPlaceButton from "@/components/AddPlaceButton";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import PlaceConfirmDialog, {
+  type NotifyGroup,
+} from "@/components/PlaceConfirmDialog";
 import { withDirectionParticle } from "@/lib/korean";
 import { postStatus } from "@/lib/postStatus";
 
@@ -13,6 +15,11 @@ interface PlaceSelectorProps {
   childId: string;
   /** The child's family places. */
   places: Place[];
+  /**
+   * The child's groups, in join order — offered as "알림 보낼 그룹" chips
+   * in the confirm dialog when there are 2+.
+   */
+  groups?: NotifyGroup[];
   onSelected?: (placeId: string | null, going: boolean) => void;
 }
 
@@ -22,8 +29,9 @@ interface PlaceSelectorProps {
  * one just created via `AddPlaceButton`, or "🏠 집으로" — asks
  * "○○로 가시겠습니까?" with 아니요 / 네, 갈래요! (there now) / 가는 중이에요
  * (on the way), then POSTs `/api/status/update` with `{ placeId, going }`.
- * The child has one status shared with all of its groups. After a successful
- * update it calls `onSelected(placeId, going)` so the parent can reflect the
+ * The child has one status shared with all of its groups; the dialog's
+ * group chips only choose which groups get the push (`notifyGroupIds`).
+ * After a successful update it calls `onSelected(placeId, going)` so the parent can reflect the
  * change immediately (Realtime delivers the same change to everyone else).
  *
  * Order is fixed: places, then 집으로, then 추가 always last.
@@ -42,6 +50,7 @@ interface PendingChoice {
 export default function PlaceSelector({
   childId,
   places,
+  groups = [],
   onSelected,
 }: PlaceSelectorProps) {
   const [selectingPlaceId, setSelectingPlaceId] = useState<string | null>(null);
@@ -55,10 +64,14 @@ export default function PlaceSelector({
     setPending({ placeId, placeName });
   }
 
-  async function selectPlace(placeId: string | null, asGoing: boolean) {
+  async function selectPlace(
+    placeId: string | null,
+    asGoing: boolean,
+    notifyGroupIds: string[] | undefined
+  ) {
     setSelectingPlaceId(placeId ?? HOME_SENTINEL);
     setError(null);
-    const failure = await postStatus(childId, placeId, asGoing);
+    const failure = await postStatus(childId, placeId, asGoing, notifyGroupIds);
     setSelectingPlaceId(null);
     if (failure) {
       setError(failure);
@@ -67,11 +80,11 @@ export default function PlaceSelector({
     onSelected?.(placeId, asGoing);
   }
 
-  function confirm(asGoing: boolean) {
+  function confirm(asGoing: boolean, notifyGroupIds: string[] | undefined) {
     if (!pending) return;
     const { placeId } = pending;
     setPending(null);
-    void selectPlace(placeId, asGoing);
+    void selectPlace(placeId, asGoing, notifyGroupIds);
   }
 
   return (
@@ -107,12 +120,12 @@ export default function PlaceSelector({
       )}
 
       {pending && (
-        <ConfirmDialog
+        <PlaceConfirmDialog
           message={`${withDirectionParticle(pending.placeName)} 가시겠습니까?`}
-          confirmLabel="네, 갈래요!"
-          onConfirm={() => confirm(false)}
+          childId={childId}
+          groups={groups}
+          onConfirm={confirm}
           onCancel={closeDialog}
-          extra={{ label: "가는 중이에요 🚶", onClick: () => confirm(true) }}
         />
       )}
     </div>

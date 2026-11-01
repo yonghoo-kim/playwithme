@@ -10,6 +10,7 @@ import {
   useLiveStatuses,
   type ChildStatusView,
 } from "@/components/RealtimeStatusList";
+import type { NotifyGroup } from "@/components/PlaceConfirmDialog";
 import type { Place } from "@/types/db";
 
 interface ActiveChildStatusProps {
@@ -17,6 +18,8 @@ interface ActiveChildStatusProps {
   child: ChildStatusView;
   /** That child's family places. */
   places: Place[];
+  /** That child's groups, in join order (for "알림 보낼 그룹"). */
+  groups: NotifyGroup[];
 }
 
 /**
@@ -30,6 +33,7 @@ interface ActiveChildStatusProps {
 export default function ActiveChildStatus({
   child,
   places,
+  groups,
 }: ActiveChildStatusProps) {
   const children = useMemo(() => [child], [child]);
   const { resolve, applyStatus } = useLiveStatuses(children, places);
@@ -89,6 +93,7 @@ export default function ActiveChildStatus({
           <PlaceSelector
             childId={child.childId}
             places={places}
+            groups={groups}
             onSelected={(placeId, going) =>
               applyStatus(
                 child.childId,

@@ -1,4 +1,5 @@
 import type { WeatherSummary } from "./weather";
+import { applySkyChrome } from "./skyChrome";
 
 // The last weather this phone received, so the next app open (and every
 // loading screen) starts with the right sky instead of flashing clear first.
@@ -15,11 +16,12 @@ export function applyWeather(weather: WeatherSummary | null): void {
   if (!weather) {
     delete root.dataset.weather;
     delete root.dataset.wxLevel;
-    return;
+  } else {
+    root.dataset.weather = weather.condition;
+    if (weather.level) root.dataset.wxLevel = weather.level;
+    else delete root.dataset.wxLevel;
   }
-  root.dataset.weather = weather.condition;
-  if (weather.level) root.dataset.wxLevel = weather.level;
-  else delete root.dataset.wxLevel;
+  applySkyChrome();
 }
 
 /** Last weather if it is under an hour old. */

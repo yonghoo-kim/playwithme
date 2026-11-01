@@ -6,17 +6,20 @@ import { Check, Share2 } from "lucide-react";
 interface InviteCopyButtonProps {
   groupName: string;
   inviteUrl: string;
+  /** Sticker size, for the group card's top edge. */
+  compact?: boolean;
 }
 
 /**
- * Small "초대하기" pill in an opened dashboard group (above its friends). The
- * invite URL is computed on the server (`buildInviteUrl`); this only copies
- * it.
+ * Small "초대하기" pill on a dashboard group card. The invite URL is computed
+ * on the server (`buildInviteUrl`); this only copies it.
  */
 export default function InviteCopyButton({
   groupName,
   inviteUrl,
+  compact = false,
 }: InviteCopyButtonProps) {
+  const iconSize = compact ? 12 : 14;
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,16 +51,20 @@ export default function InviteCopyButton({
       type="button"
       onClick={copyLink}
       aria-label={`${groupName} 초대 링크 복사`}
-      className="flex shrink-0 items-center gap-1 rounded-full border-4 border-gray-800 bg-pink-300 px-3 py-1 font-jua text-sm text-pink-900 shadow-[4px_4px_0px_rgba(31,41,55,0.25)] transition-transform hover:scale-105 active:scale-95"
+      className={`flex shrink-0 items-center gap-1 rounded-full border-gray-800 bg-pink-300 font-jua text-pink-900 transition-transform hover:scale-105 active:scale-95 ${
+        compact
+          ? "border-2 px-2 py-0.5 text-xs"
+          : "border-4 px-3 py-1 text-sm shadow-[4px_4px_0px_rgba(31,41,55,0.25)]"
+      }`}
     >
       {copied ? (
         <>
-          <Check size={14} strokeWidth={3} />
+          <Check size={iconSize} strokeWidth={3} />
           복사됨
         </>
       ) : (
         <>
-          <Share2 size={14} strokeWidth={3} />
+          <Share2 size={iconSize} strokeWidth={3} />
           초대하기
         </>
       )}

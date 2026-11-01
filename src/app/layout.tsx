@@ -6,6 +6,7 @@ import PlaygroundBackground from "@/components/PlaygroundBackground";
 import PushOpenListener from "@/components/PushOpenListener";
 import { DAY_PHASE_SCRIPT } from "@/lib/dayPhase";
 import { WEATHER_CACHE_SCRIPT } from "@/lib/weatherCache";
+import { SKY_CHROME_SCRIPT } from "@/lib/skyChrome";
 
 const jua = Jua({
   subsets: ["latin"],
@@ -31,8 +32,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#9DDCFF" />
         <script dangerouslySetInnerHTML={{ __html: DAY_PHASE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: WEATHER_CACHE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SKY_CHROME_SCRIPT }} />
       </head>
-      <body className={`${jua.variable} font-jua bg-sky-100 antialiased`}>
+      <body className={`${jua.variable} font-jua bg-transparent antialiased`}>
         <PlaygroundBackground />
         <NavigationProgress />
         <PushOpenListener />

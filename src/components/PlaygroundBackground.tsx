@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, type CSSProperties } from "react";
-import { dayPhase, PHASE_THEME_COLOR } from "@/lib/dayPhase";
+import { dayPhase } from "@/lib/dayPhase";
+import { applySkyChrome } from "@/lib/skyChrome";
 
 function applyCurrentPhase() {
   const phase = dayPhase(new Date().getHours());
   const root = document.documentElement;
   if (root.dataset.phase === phase) return;
   root.dataset.phase = phase;
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", PHASE_THEME_COLOR[phase]);
+  applySkyChrome();
 }
 
 function Cloud({ className }: { className: string }) {

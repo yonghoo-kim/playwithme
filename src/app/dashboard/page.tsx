@@ -256,6 +256,10 @@ export default async function DashboardPage({
               going: status?.going === true,
             }}
             places={places}
+            groups={childGroups.map((group) => ({
+              id: group.id,
+              name: group.name,
+            }))}
           />
         </section>
 
